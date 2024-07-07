@@ -1,0 +1,72 @@
+{
+    "os": "Windows-10-10.0.22000-SP0",
+    "python": "3.9.19",
+    "heartbeatAt": "2024-07-07T09:23:48.351959",
+    "startedAt": "2024-07-07T09:23:48.089068",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--data",
+        "data/train_set.fasta",
+        "--test_partition",
+        "0",
+        "--validation_partition",
+        "1",
+        "--output_dir",
+        "testruns",
+        "--experiment_name",
+        "testrun1",
+        "--remove_top_layers",
+        "1",
+        "--kingdom_as_token",
+        "--sp_region_labels",
+        "--region_regularization_alpha",
+        "0.5",
+        "--constrain_crf",
+        "--average_per_kingdom"
+    ],
+    "state": "running",
+    "program": "E:\\signalp-6.0\\signalp-6.0\\scripts\\train_model.py",
+    "codePathLocal": "scripts\\train_model.py",
+    "codePath": "scripts\\train_model.py",
+    "git": {
+        "remote": "https://github.com/Bright1228/PhosphoricAcidDetect.git",
+        "commit": "b5e49dcdf2e4997c75c4f9a2f2d4f63ac1b3e804"
+    },
+    "email": "54073145+Bright1228@users.noreply.github.com",
+    "root": "E:/signalp-6.0/signalp-6.0",
+    "host": "LAPTOP-M8SRAFOD",
+    "username": "Shi",
+    "executable": "D:\\Library\\Anaconda\\envs\\protein\\python.exe",
+    "cpu_count": 8,
+    "cpu_count_logical": 16,
+    "cpu_freq": {
+        "current": 3201.0,
+        "min": 0.0,
+        "max": 3201.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3201.0,
+            "min": 0.0,
+            "max": 3201.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 332.15526962280273,
+            "used": 74.90155029296875
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+            "memory_total": 6442450944
+        }
+    ],
+    "memory": {
+        "total": 15.855525970458984
+    }
+}

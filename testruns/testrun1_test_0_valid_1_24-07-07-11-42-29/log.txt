@@ -1,0 +1,15 @@
+24/07/07 19:42:45 - INFO - __main__ -   torch seed: 504566800954700
+24/07/07 19:42:45 - INFO - __main__ -   Saving to testruns\testrun1_test_0_valid_1_24-07-07-11-42-29
+24/07/07 19:42:45 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+24/07/07 19:51:43 - INFO - __main__ -   Loaded weights from Rostlab/prot_bert for model bert
+24/07/07 19:51:43 - INFO - __main__ -   Using kingdom IDs as word in sequence, extending embedding layer of pretrained model.
+24/07/07 19:51:43 - INFO - __main__ -   Training on [2], validating on 1
+24/07/07 19:51:43 - INFO - __main__ -   Using labels for SP region prediction.
+24/07/07 19:51:43 - INFO - __main__ -   7002 training sequences, 7392 validation sequences.
+24/07/07 19:51:43 - INFO - __main__ -   Data loaded. One epoch = 88 batches.
+24/07/07 19:51:43 - INFO - __main__ -   Logging experiment as testrun1_0_1_24-07-07-11-42-29 to wandb/tensorboard
+24/07/07 19:51:43 - INFO - __main__ -   Saving checkpoints at testruns\testrun1_test_0_valid_1_24-07-07-11-42-29
+24/07/07 19:51:46 - INFO - __main__ -   Model set up!
+24/07/07 19:51:46 - INFO - __main__ -   Model has 407384520 trainable parameters
+24/07/07 19:51:46 - INFO - __main__ -   Running model on cuda, not using nvidia apex
+24/07/07 19:51:46 - INFO - __main__ -   Starting epoch 1

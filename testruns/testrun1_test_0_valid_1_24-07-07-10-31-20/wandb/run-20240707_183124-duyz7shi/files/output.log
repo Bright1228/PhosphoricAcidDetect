@@ -1,0 +1,11 @@
+24/07/07 18:31:41 - INFO - __main__ -   torch seed: 500302250210300
+24/07/07 18:31:41 - INFO - __main__ -   Saving to testruns\testrun1_test_0_valid_1_24-07-07-10-31-20
+24/07/07 18:31:41 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+Traceback (most recent call last):
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 1210, in <module>
+    main_training_loop(args)
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 572, in main_training_loop
+    if config.xla_device:
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\configuration_utils.py", line 264, in __getattribute__
+    return super().__getattribute__(key)
+AttributeError: 'BertConfig' object has no attribute 'xla_device'

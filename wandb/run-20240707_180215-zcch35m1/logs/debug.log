@@ -1,0 +1,40 @@
+2024-07-07 18:02:15,935 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Current SDK version is 0.17.3
+2024-07-07 18:02:15,935 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Configure stats pid to 28708
+2024-07-07 18:02:15,935 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Loading settings from C:\Users\Lenovo\.config\wandb\settings
+2024-07-07 18:02:15,935 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Loading settings from E:\PhosphoricAcidDetect\PhosphoricAcidDetect\wandb\settings
+2024-07-07 18:02:15,936 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-07-07 18:02:15,936 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-07-07 18:02:15,936 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2024-07-07 18:02:15,936 INFO    MainThread:28708 [wandb_setup.py:_flush():76] Applying login settings: {}
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:_log_setup():520] Logging user logs to E:\PhosphoricAcidDetect\PhosphoricAcidDetect\wandb\run-20240707_180215-zcch35m1\logs\debug.log
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:_log_setup():521] Logging internal logs to E:\PhosphoricAcidDetect\PhosphoricAcidDetect\wandb\run-20240707_180215-zcch35m1\logs\debug-internal.log
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:_jupyter_setup():466] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x0000016998FE2BE0>
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:init():560] calling init triggers
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:init():567] wandb.init called with sweep_config: {}
+config: {'learning_rate': 0.02, 'architecture': 'CNN', 'dataset': 'CIFAR-100', 'epochs': 10}
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:init():610] starting backend
+2024-07-07 18:02:15,937 INFO    MainThread:28708 [wandb_init.py:init():614] setting up manager
+2024-07-07 18:02:15,940 INFO    MainThread:28708 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=spawn, using: spawn
+2024-07-07 18:02:15,942 INFO    MainThread:28708 [wandb_init.py:init():622] backend started and connected
+2024-07-07 18:02:15,951 INFO    MainThread:28708 [wandb_run.py:_label_probe_notebook():1334] probe notebook
+2024-07-07 18:02:15,952 INFO    MainThread:28708 [wandb_init.py:init():711] updated telemetry
+2024-07-07 18:02:16,112 INFO    MainThread:28708 [wandb_init.py:init():744] communicating run to backend with 90.0 second timeout
+2024-07-07 18:02:17,285 INFO    MainThread:28708 [wandb_run.py:_on_init():2402] communicating current version
+2024-07-07 18:02:17,995 INFO    MainThread:28708 [wandb_run.py:_on_init():2411] got version response upgrade_message: "wandb version 0.17.4 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2024-07-07 18:02:17,995 INFO    MainThread:28708 [wandb_init.py:init():795] starting run threads in backend
+2024-07-07 18:02:28,081 INFO    MainThread:28708 [wandb_run.py:_console_start():2380] atexit reg
+2024-07-07 18:02:28,081 INFO    MainThread:28708 [wandb_run.py:_redirect():2235] redirect: wrap_raw
+2024-07-07 18:02:28,082 INFO    MainThread:28708 [wandb_run.py:_redirect():2300] Wrapping output streams.
+2024-07-07 18:02:28,082 INFO    MainThread:28708 [wandb_run.py:_redirect():2325] Redirects installed.
+2024-07-07 18:02:28,084 INFO    MainThread:28708 [wandb_init.py:init():838] run started, returning control to user process
+2024-07-07 18:02:28,086 INFO    MainThread:28708 [wandb_run.py:_finish():2109] finishing run sjb15298306261-Nanjing University/my-awesome-project/zcch35m1
+2024-07-07 18:02:28,086 INFO    MainThread:28708 [jupyter.py:save_history():444] not saving jupyter history
+2024-07-07 18:02:28,086 INFO    MainThread:28708 [jupyter.py:save_ipynb():372] not saving jupyter notebook
+2024-07-07 18:02:28,087 INFO    MainThread:28708 [wandb_init.py:_jupyter_teardown():448] cleaning up jupyter logic
+2024-07-07 18:02:28,087 INFO    MainThread:28708 [wandb_run.py:_atexit_cleanup():2349] got exitcode: 0
+2024-07-07 18:02:28,087 INFO    MainThread:28708 [wandb_run.py:_restore():2332] restore
+2024-07-07 18:02:28,087 INFO    MainThread:28708 [wandb_run.py:_restore():2338] restore done
+2024-07-07 18:02:39,761 INFO    MainThread:28708 [wandb_run.py:_footer_history_summary_info():3991] rendering history
+2024-07-07 18:02:39,762 INFO    MainThread:28708 [wandb_run.py:_footer_history_summary_info():4023] rendering summary
+2024-07-07 18:02:39,774 INFO    MainThread:28708 [wandb_run.py:_footer_sync_info():3950] logging synced files

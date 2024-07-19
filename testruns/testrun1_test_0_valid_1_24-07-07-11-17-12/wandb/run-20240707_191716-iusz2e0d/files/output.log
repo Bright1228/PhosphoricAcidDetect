@@ -1,0 +1,149 @@
+24/07/07 19:17:28 - INFO - __main__ -   torch seed: 503049883530500
+24/07/07 19:17:28 - INFO - __main__ -   Saving to testruns\testrun1_test_0_valid_1_24-07-07-11-17-12
+24/07/07 19:17:28 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pytorch_model.bin:   9%|█████▊                                                        | 157M/1.68G [03:00<26:01, 978kB/s]Error while downloading from https://cdn-lfs.huggingface.co/Rostlab/prot_bert/6ea3edd26cfefc3111176100ee2a027ed510f9c86b63e5b53a2a050b59f2af9d?response-content-disposition=inline%3B+filename*%3DUTF-8%27%27pytorch_model.bin%3B+filename%3D%22pytorch_model.bin%22%3B&response-content-type=application%2Foctet-stream&Expires=1720610249&Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTcyMDYxMDI0OX19LCJSZXNvdXJjZSI6Imh0dHBzOi8vY2RuLWxmcy5odWdnaW5nZmFjZS5jby9Sb3N0bGFiL3Byb3RfYmVydC82ZWEzZWRkMjZjZmVmYzMxMTExNzYxMDBlZTJhMDI3ZWQ1MTBmOWM4NmI2M2U1YjUzYTJhMDUwYjU5ZjJhZjlkP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249KiZyZXNwb25zZS1jb250ZW50LXR5cGU9KiJ9XX0_&Signature=ZB0-Ug%7EZn6Xa2iLYdjbCAGfjR6z54MbnvSTUD2Z02dDVA-v4b9RBPXvQKhlrjSbJhIivqbpEC1N2O51QPpJDJawmj2hePqq4Ha8NiUUTdiKLoYuuqyvgxLJ4XLT5x%7E4q9DtF-chZQjg6MgayixOEMt5eTiL7rVV%7EEKaajhg-YibDff3rOx6t-tBJsn%7Evx8AN31EaN36frf64zXYQkgB-uQgu8zmQ1iFVh5%7EfZ9InO0mEqaM44ETwW%7E-YmucsxyWPtEqlNjbzsy6hF6yaSS1Q%7Ek8nenv3WKgw5kcNiLKS5E4dakDbzTjpd1E%7Ew0DlVatiy1Scik726XGiZD6faQNa2g__&Key-Pair-Id=K3ESJI6DHPFC7: HTTPSConnectionPool(host='cdn-lfs.huggingface.co', port=443): Read timed out.
+Trying to resume download...
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 748, in _error_catcher
+    yield
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 873, in _raw_read
+    data = self._fp_read(amt, read1=read1) if not fp_closed else b""
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 856, in _fp_read
+    return self._fp.read(amt) if amt is not None else self._fp.read()
+  File "D:\Library\Anaconda\envs\protein\lib\http\client.py", line 463, in read
+    n = self.readinto(b)
+  File "D:\Library\Anaconda\envs\protein\lib\http\client.py", line 507, in readinto
+    n = self.fp.readinto(b)
+  File "D:\Library\Anaconda\envs\protein\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 1275, in recv_into
+    return self.read(nbytes, buffer)
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 1133, in read
+    return self._sslobj.read(len, buffer)
+socket.timeout: The read operation timed out
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\models.py", line 820, in generate
+    yield from self.raw.stream(chunk_size, decode_content=True)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 1060, in stream
+    data = self.read(amt=amt, decode_content=decode_content)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 949, in read
+    data = self._raw_read(amt)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 902, in _raw_read
+    self._fp.close()
+  File "D:\Library\Anaconda\envs\protein\lib\contextlib.py", line 137, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\response.py", line 753, in _error_catcher
+    raise ReadTimeoutError(self._pool, None, "Read timed out.") from e  # type: ignore[arg-type]
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='cdn-lfs.huggingface.co', port=443): Read timed out.
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 539, in http_get
+    for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\models.py", line 826, in generate
+    raise ConnectionError(e)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='cdn-lfs.huggingface.co', port=443): Read timed out.
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 775, in urlopen
+    self._prepare_proxy(conn)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 1044, in _prepare_proxy
+    conn.connect()
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 652, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 805, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\ssl_.py", line 465, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\ssl_.py", line 509, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 501, in wrap_socket
+    return self.sslsocket_class._create(
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 1074, in _create
+    self.do_handshake()
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 1343, in do_handshake
+    self._sslobj.do_handshake()
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\adapters.py", line 589, in send
+    resp = conn.urlopen(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 843, in urlopen
+    retries = retries.increment(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\retry.py", line 474, in increment
+    raise reraise(type(error), error, _stacktrace)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 775, in urlopen
+    self._prepare_proxy(conn)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 1044, in _prepare_proxy
+    conn.connect()
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 652, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 805, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\ssl_.py", line 465, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\ssl_.py", line 509, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 501, in wrap_socket
+    return self.sslsocket_class._create(
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 1074, in _create
+    self.do_handshake()
+  File "D:\Library\Anaconda\envs\protein\lib\ssl.py", line 1343, in do_handshake
+    self._sslobj.do_handshake()
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 1212, in <module>
+    main_training_loop(args)
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 727, in main_training_loop
+    model = MODEL_DICT[args.model_architecture][1].from_pretrained(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\modeling_utils.py", line 3457, in from_pretrained
+    resolved_archive_file = cached_file(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\utils\hub.py", line 402, in cached_file
+    resolved_file = hf_hub_download(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\utils\_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 1221, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 1367, in _hf_hub_download_to_cache_dir
+    _download_to_tmp_and_move(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 1884, in _download_to_tmp_and_move
+    http_get(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 556, in http_get
+    return http_get(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 459, in http_get
+    r = _request_wrapper(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py", line 395, in _request_wrapper
+    response = get_session().request(method=method, url=url, **params)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\utils\_http.py", line 66, in send
+    return super().send(request, *args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\adapters.py", line 604, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: (ProtocolError('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None)), '(Request ID: 09a0909d-4754-4f9f-b324-19d849db53c2)')

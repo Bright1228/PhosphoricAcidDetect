@@ -118,8 +118,9 @@ def setup_logger():
     logger.addHandler(c_handler)
     return logger
 
-
+# 不知道为什么显存不足，用cpu试试看
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 
 def tagged_seq_to_cs_multiclass(tagged_seqs: np.ndarray, sp_tokens=[0, 4, 5]):
@@ -569,8 +570,10 @@ def main_training_loop(args: argparse.ArgumentParser):
     logger.info(f"Loading pretrained model in {args.resume}")
     config = MODEL_DICT[args.model_architecture][0].from_pretrained(args.resume)
 
-    if config.xla_device:
-        setattr(config, "xla_device", False)
+    # if config.xla_device:
+    #     setattr(config, "xla_device", False)
+    if not hasattr(config, "xla_device"):
+        setattr(config,"xla_device",False)
 
     setattr(config, "num_labels", args.num_seq_labels)
     setattr(config, "num_global_labels", args.num_global_labels)
@@ -684,11 +687,24 @@ def main_training_loop(args: argparse.ArgumentParser):
             (34, 35),
             (35, 36),
         ]
+        # 这个部分在预训练数据进行了标注：>Q8TF40|EUKARYA|NO_SP|0,磷酸化检测不需要这样划分
         #            'NO_SP_I' : 0,
         #            'NO_SP_M' : 1,
         #            'NO_SP_O' : 2,
         allowed_starts = [0, 2, 3, 9, 16, 23, 31]
         allowed_ends = [0, 1, 2, 13, 14, 15, 20, 21, 22, 28, 29, 30, 34, 35, 36]
+
+        # 这里暂时设置四种情况
+        # 我需要硬编码吗？需要，这个就相当于训练集里面可以0-1也可以1-0，那自然是可以的
+        # allowed_transitions = [
+        #     (0, 0),  # 非磷酸化可以保持非磷酸化
+        #     (1, 1),  # 磷酸化可以保持磷酸化
+        #     (0, 1),  # 非磷酸化可以转变为磷酸化
+        #     (1, 0),  # 磷酸化可以转变为非磷酸化
+        # ]
+
+        # allowed_starts = [0, 1]
+        # allowed_ends = [0, 1]
 
         setattr(config, "allowed_crf_transitions", allowed_transitions)
         setattr(config, "allowed_crf_starts", allowed_starts)
@@ -1023,6 +1039,7 @@ if __name__ == "__main__":
     parser.add_argument("--clip", type=float, default=0.25, help="gradient clipping")
     parser.add_argument("--epochs", type=int, default=8000, help="upper epoch limit")
 
+    # batch_size默认为80
     parser.add_argument(
         "--batch_size", type=int, default=80, metavar="N", help="batch size"
     )

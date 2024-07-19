@@ -1,0 +1,226 @@
+24/07/07 19:42:45 - INFO - __main__ -   torch seed: 504566800954700
+24/07/07 19:42:45 - INFO - __main__ -   Saving to testruns\testrun1_test_0_valid_1_24-07-07-11-42-29
+24/07/07 19:42:45 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pytorch_model.bin:  77%|█████████████████████████████████████████████████████████████████████████████████████████▌                           | 1.29G/1.68G [06:12<01:54, 3.43MB/s]Error while downloading from https://cdn-lfs.huggingface.co/Rostlab/prot_bert/6ea3edd26cfefc3111176100ee2a027ed510f9c86b63e5b53a2a050b59f2af9d?response-content-disposition=inline%3B+filename*%3DUTF-8%27%27pytorch_model.bin%3B+filename%3D%22pytorch_model.bin%22%3B&response-content-type=application%2Foctet-stream&Expires=1720610831&Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTcyMDYxMDgzMX19LCJSZXNvdXJjZSI6Imh0dHBzOi8vY2RuLWxmcy5odWdnaW5nZmFjZS5jby9Sb3N0bGFiL3Byb3RfYmVydC82ZWEzZWRkMjZjZmVmYzMxMTExNzYxMDBlZTJhMDI3ZWQ1MTBmOWM4NmI2M2U1YjUzYTJhMDUwYjU5ZjJhZjlkP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249KiZyZXNwb25zZS1jb250ZW50LXR5cGU9KiJ9XX0_&Signature=KNF1xmYDmtyx5Va2nLIbsfbsgzEOYG79QQvXqew82fV30pCz%7EGx7pYQ%7Eeahl2%7E%7EqQXdv1Kse-BnBWIbzNfvsZ5d5vp3x09hLnhtDUjdnwrRAhr8tF4oRJzIV-1PRbfxakHSgcunZTnZnkpUUIXG5urROT4UWjMipIYdwptyzsj4%7EouUSb%7EUGELRiqzWL5a%7EGhXXtYoeagFu9KDE46naKGbYiEgTkuOjeyB1haxMRhuagbketv9bsvMwdTLTR1j6X576-1YHvQSuWIacOQn5J1Y9PFNEA2XKFiiU4NvZJUE8wgB%7ElcfnosY00iGaPAwCCpjgoHnBBXd123W5HQiOP9g__&Key-Pair-Id=K3ESJI6DHPFC7: HTTPSConnectionPool(host='cdn-lfs.huggingface.co', port=443): Read timed out.
+Trying to resume download...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pytorch_model.bin:  77%|█████████████████████████████████████████████████████████████████████████████████████████▌                           | 1.29G/1.68G [08:43<03:02, 2.16MB/s]
+D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\file_download.py:157: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\Lenovo\.cache\huggingface\hub\models--Rostlab--prot_bert. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to see activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+e:\signalp-6.0-main\src\signalp6\models\multi_tag_crf.py:123: UserWarning: where received a uint8 condition tensor. This behavior is deprecated and will be removed in a future version of PyTorch. Use a boolean condition instead. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\builder\windows\pytorch\aten\src\ATen\native\TensorCompare.cpp:530.)
+  self.transitions.data = torch.where(
+Some weights of BertSequenceTaggingCRF were not initialized from the model checkpoint at Rostlab/prot_bert and are newly initialized: ['crf._constraint_end_mask', 'crf._constraint_mask', 'crf._constraint_start_mask', 'crf.end_transitions', 'crf.start_transitions', 'crf.transitions', 'outputs_to_emissions.bias', 'outputs_to_emissions.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+tokenizer_config.json: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 86.0/86.0 [00:00<00:00, 43.2kB/s]
+vocab.txt: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 81.0/81.0 [00:00<00:00, 40.5kB/s]
+special_tokens_map.json: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 112/112 [00:00<00:00, 37.4kB/s]
+24/07/07 19:51:43 - INFO - __main__ -   Loaded weights from Rostlab/prot_bert for model bert
+24/07/07 19:51:43 - INFO - __main__ -   Using kingdom IDs as word in sequence, extending embedding layer of pretrained model.
+24/07/07 19:51:43 - INFO - __main__ -   Training on [2], validating on 1
+24/07/07 19:51:43 - INFO - __main__ -   Using labels for SP region prediction.
+24/07/07 19:51:43 - INFO - __main__ -   7002 training sequences, 7392 validation sequences.
+24/07/07 19:51:43 - INFO - __main__ -   Data loaded. One epoch = 88 batches.
+24/07/07 19:51:43 - INFO - __main__ -   Logging experiment as testrun1_0_1_24-07-07-11-42-29 to wandb/tensorboard
+24/07/07 19:51:43 - INFO - __main__ -   Saving checkpoints at testruns\testrun1_test_0_valid_1_24-07-07-11-42-29
+24/07/07 19:51:46 - INFO - __main__ -   Model set up!
+24/07/07 19:51:46 - INFO - __main__ -   Model has 407384520 trainable parameters
+24/07/07 19:51:46 - INFO - __main__ -   Running model on cuda, not using nvidia apex
+24/07/07 19:51:46 - INFO - __main__ -   Starting epoch 1
+D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py:439: UserWarning: 1Torch was not compiled with flash attention. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\builder\windows\pytorch\aten\src\ATen\native\transformers\cuda\sdp_utils.cpp:455.)
+  attn_output = torch.nn.functional.scaled_dot_product_attention(
+Traceback (most recent call last):
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 1212, in <module>
+    main_training_loop(args)
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 898, in main_training_loop
+    epoch_loss, global_step = train(
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 344, in train
+    loss, global_probs, pos_probs, pos_preds = model(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "e:\signalp-6.0-main\src\signalp6\models\bert_crf.py", line 221, in forward
+    outputs = self.bert(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 1141, in forward
+    encoder_outputs = self.encoder(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 694, in forward
+    layer_outputs = layer_module(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 584, in forward
+    self_attention_outputs = self.attention(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 514, in forward
+    self_outputs = self.self(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 408, in forward
+    value_layer = self.transpose_for_scores(self.value(current_states))
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\linear.py", line 116, in forward
+    return F.linear(input, self.weight, self.bias)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 24.00 MiB. GPU

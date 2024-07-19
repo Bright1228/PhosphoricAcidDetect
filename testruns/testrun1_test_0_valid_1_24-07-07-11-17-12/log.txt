@@ -1,0 +1,3 @@
+24/07/07 19:17:28 - INFO - __main__ -   torch seed: 503049883530500
+24/07/07 19:17:28 - INFO - __main__ -   Saving to testruns\testrun1_test_0_valid_1_24-07-07-11-17-12
+24/07/07 19:17:28 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert

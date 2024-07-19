@@ -13,6 +13,7 @@ from collections import defaultdict
 
 from .label_processing_utils import process_SP
 
+# 这里是定义信号肽类型的，用于预测，在此定义一个新的结构用于判断磷酸化
 # [S: Sec/SPI signal peptide | T: Tat/SPI signal peptide | L: Sec/SPII signal peptide | I: cytoplasm | M: transmembrane | O: extracellular]
 SIGNALP_VOCAB = [
     "S",
@@ -33,7 +34,17 @@ SIGNALP6_GLOBAL_LABEL_DICT = {
     "PILIN": 5,
 }
 
-
+# 此处定义磷酸化判断的相关结构
+# 磷酸化词汇表，这里的01会出现在fasta文件的第三行
+PHOSPHO_VOCAB = [
+    "0",  # 未磷酸化
+    "1",  # 磷酸化
+]
+# 提供全局标签与描述的映射提供全局标签与描述的映射的字典
+PHOSPHO_GLOBAL_LABEL_DICT = {
+    "UNPHOSPHORYLATED": 0,  # 未磷酸化的全局标签
+    "PHOSPHORYLATED": 1,    # 磷酸化的全局标签
+}
 def pad_sequences(sequences: Sequence, constant_value=0, dtype=None) -> np.ndarray:
     batch_size = len(sequences)
     shape = [batch_size] + np.max([seq.shape for seq in sequences], 0).tolist()
@@ -95,7 +106,7 @@ def subset_dataset(
 
     return identifiers_out, sequences_out, labels_out
 
-
+# 这里进行解码，理论上我换一个字母表就能用了
 class SP_label_tokenizer:
     """[S: Sec/SPI signal peptide | T: Tat/SPI signal peptide | L: Sec/SPII signal peptide | I: cytoplasm | M: transmembrane | O: extracellular]"""
 
@@ -159,6 +170,7 @@ class AbstractThreeLineFastaDataset(Dataset):
         raise NotImplementedError
 
 
+# 处理分割位点的类，或许我直接不需要它
 # Process this:
 # >P10152|EUKARYA|SP|1
 # MVMVLSPLLLVFILGLGLTPVAPAQDDYRYIHFLTQHYDAKPKGRNDEYCFNMMKNRRLTRPCKDRNTFI
@@ -938,6 +950,7 @@ class SignalP5Dataset(Dataset):
         self.global_labels = [x.split("|")[2] for x in self.identifiers]
         self.kingdom_ids = [x.split("|")[1] for x in self.identifiers]
 
+
     def __len__(self) -> int:
         return len(self.sequences)
 
@@ -1002,9 +1015,9 @@ class SignalP5Dataset(Dataset):
         global_targets = torch.tensor(global_label_ids)
 
         return_tuple = (data, targets, mask, global_targets)
-        if hasattr(self, "sample_weights"):
-            sample_weights = torch.tensor(sample_weights)
-            return_tuple = return_tuple + (sample_weights,)
+        # if hasattr(self, "sample_weights"):
+        #     sample_weights = torch.tensor(sample_weights)
+        #     return_tuple = return_tuple + (sample_weights,)
         if hasattr(self, "kingdom_ids"):
             kingdom_ids = torch.tensor(kingdom_ids)
             return_tuple = return_tuple + (kingdom_ids,)

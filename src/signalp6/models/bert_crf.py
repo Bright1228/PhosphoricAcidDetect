@@ -10,16 +10,22 @@ import re
 
 class SequenceDropout(nn.Module):
     """Layer zeroes full hidden states in a sequence of hidden states"""
+    # 这个类用于在训练过程中随机将输入序列的一部分隐藏状态置零，即序列Dropout,以此来防止模型对训练数据过拟合。
+    # 暂时还没理解怎么用7.11
 
     def __init__(self, p=0.1, batch_first=True):
         super().__init__()
+        # p用来控制Dropout的概率
         self.p = p
+        # batch_first 参数指示输入数据的维度排列方式
         self.batch_first = batch_first
 
     def forward(self, x):
+        # 没有训练或者概率设0，则不执行
         if not self.training or self.dropout == 0:
             return x
 
+        # 如果输入x的格式不是batch_first（即第一个维度不是批量大小），则交换第一维和第二维
         if not self.batch_first:
             x = x.transpose(0, 1)
         # make dropout mask
@@ -40,20 +46,29 @@ class ProteinBertTokenizer:
     """Wrapper class for Huggingface BertTokenizer.
     implements an encode() method that takes care of
     - putting spaces between AAs
+    - 在氨基酸之间添加空格
     - prepending the kingdom id token,if kingdom id is provided and vocabulary allows it
+    - 如果提供了界ID并且词汇表允许，就添加界ID标记
     - prepending the label token, if provided and vocabulary allows it. label token is used when
       predicting the CS conditional on the known class.
+    - 如果提供了标签并且词汇表允许，就添加标签标记。在已知类别的条件下预测CS时使用标签标记。
     """
 
+    # 由于要对不同生物进行区分，这里设置了界id用于处理分词，预测磷酸化应该不需这个参数
+
     def __init__(self, *args, **kwargs):
+        # from_pretrained用于从一个预训练的模型检查点加载分词器的配置和权重
         self.tokenizer = BertTokenizer.from_pretrained(*args, **kwargs)
 
     def encode(self, sequence, kingdom_id=None, label_id=None):
         # Preprocess sequence to ProtTrans format
+        # 用空格的形式连接，这是ProtTrans的要求
         sequence = " ".join(sequence)
 
+        #  'U'（硒半胱氨酸）、'Z'（赖氨酸）、'O'（羟赖氨酸）和 'B'（天冬酰胺）将其转化为X，这个需要后面检查分词器词汇表
         prepro = re.sub(r"[UZOB]", "X", sequence)
 
+        # 界编号没有，但是有EPSD ID
         if kingdom_id is not None and self.tokenizer.vocab_size > 30:
             prepro = kingdom_id.upper() + " " + prepro
         if (
@@ -67,8 +82,11 @@ class ProteinBertTokenizer:
     @classmethod
     def from_pretrained(cls, checkpoint, **kwargs):
         return cls(checkpoint, **kwargs)
+    # 用于创建类的实例，checkpoint可以指向预训练的模型或者路径
 
 
+# 用于信号肽预测模型的分类标签映射列表
+# 为什么要分为6个部分，36又是哪来的？6个部分猜测是5种加none
 SIGNALP6_CLASS_LABEL_MAP = [
     [0, 1, 2],
     [3, 4, 5, 6, 7, 8],
@@ -78,12 +96,22 @@ SIGNALP6_CLASS_LABEL_MAP = [
     [31, 32, 33, 34, 35, 36],
 ]
 
+# 磷酸化
+PHOSPHORYLATION_CLASS_LABEL_MAP = [
+    [0],  # 非磷酸化
+    [1],  # 磷酸化
+]
 
 class BertSequenceTaggingCRF(BertPreTrainedModel):
+    # 用于序列标注和全局标签预测的模型，能够预测蛋白质序列中的信号肽区域以及全局标签
+    # 也就是说能够检测出哪里是信号肽，以及这个信号肽是什么
+    # 修改时删去信号肽是什么，保留检测部分，并且改为位点
     """Sequence tagging and global label prediction model (like SignalP).
     LM output goes through a linear layer with classifier_hidden_size before being projected to num_labels outputs.
+    语言模型的输出在被映射到 num_labels 输出之前，先通过具有 classifier_hidden_size 大小的线性层。
     These outputs then either go into the CRF as emissions, or to softmax as direct probabilities.
     config.use_crf controls this.
+    这些输出接着要么作为 CRF 的发射概率输入，要么直接通过 softmax 作为概率输出。这由 config.use_crf 控制。
 
     Inputs are batch first.
        Loss is sum between global sequence label crossentropy and position wise tags crossentropy.
@@ -94,16 +122,19 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
+        # 由于不涉及到界，这部分可以不管
         ## Set up kingdom ID embedding layer if used
         self.use_kingdom_id = (
             config.use_kingdom_id if hasattr(config, "use_kingdom_id") else False
         )
-
+        # 创建嵌入层
         if self.use_kingdom_id:
             self.kingdom_embedding = nn.Embedding(4, config.kingdom_embed_size)
 
         ## Set up LM and hidden state postprocessing
+        # 初始化Bert模型
         self.bert = BertModel(config=config)
+        # 初始化LM输出的dropout层，用于正则化
         self.lm_output_dropout = nn.Dropout(
             config.lm_output_dropout if hasattr(config, "lm_output_dropout") else 0
         )  # for backwards compatbility
@@ -121,6 +152,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             config.type_id_as_token if hasattr(config, "type_id_as_token") else False
         )
 
+        # 设置CRF层的输入长度，这里的70是data目录下一众fasta的长度，目前的实现是在不能通过输入数据或标签来控制序列长度的情况下使用的硬编码值
+        # 不知道要不要修改，因为数据不是截成70，划分的话肯定会预测不准的
         self.crf_input_length = 70  # TODO make this part of config if needed. Now it's for cases where I don't control that via input data or labels.
 
         ## Hidden states to CRF emissions
@@ -218,16 +251,20 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             )
 
         ## Get LM hidden states
+        # 获取语言模型的隐藏状态
         outputs = self.bert(
             input_ids, attention_mask=input_mask, inputs_embeds=inputs_embeds
         )  # Returns tuple. pos 0 is sequence output, rest optional.
-
+        # 这里取得的就是由碱基得到的那些序列，后面需要进一步的处理
         sequence_output = outputs[0]
 
         ## Remove special tokens
+        # 移除特殊 token，如 BERT 的 [CLS] 和 [SEP]，并处理 padding
         sequence_output, input_mask = self._trim_transformer_output(
             sequence_output, input_mask
         )  # this takes care of CLS and SEP, pad-aware
+
+        # 去除界id，类别id，确保输入给CRF的比较简洁
         if self.kingdom_id_as_token:
             sequence_output = sequence_output[:, 1:, :]
             input_mask = input_mask[:, 1:] if input_mask is not None else None
@@ -236,6 +273,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             input_mask = input_mask[:, 1:] if input_mask is not None else None
 
         ## Trim transformer output to length of targets or to crf_input_length
+        # 根据 targets 的长度或 crf_input_length 截断 transformer 输出
+        # 这里的crf_input_length在init的时候被初始化为了70
         if targets is not None:
             sequence_output = sequence_output[
                 :, : targets.shape[1], :
@@ -263,9 +302,11 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             sequence_output = torch.cat([sequence_output, ids_emb], dim=-1)
 
         ## CRF emissions
+        # 序列转化为输入到CRF层的概率
         prediction_logits = self.outputs_to_emissions(sequence_output)
 
         ## CRF
+        # 根据是否有 targets，计算 CRF 层的对数似然
         if targets is not None:
             log_likelihood = self.crf(
                 emissions=prediction_logits,
@@ -288,10 +329,12 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         else:
             neg_log_likelihood = 0
 
+        # 计算 CRF 层的边缘概率
         probs = self.crf.compute_marginal_probabilities(
             emissions=prediction_logits, mask=input_mask.byte()
         )
 
+        # 根据是否使用 sp_region_tagging 计算全局标签概率
         if self.sp_region_tagging:
             global_probs = self.compute_global_labels_multistate(probs, input_mask)
         else:
@@ -389,6 +432,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         """Compute the global labels as sum over marginal probabilities, normalizing by seuqence length.
         For agrregation, the EXTENDED_VOCAB indices from signalp_dataset.py are hardcoded here.
         If num_global_labels is 2, assume we deal with the sp-no sp case.
+        这里就说明了global设置为2时就是处理是或不是的例子
         """
         # probs = b_size x seq_len x n_states tensor
         # Yes, each SP type will now have 4 labels in the CRF. This means that now you only optimize the CRF loss, nothing else.

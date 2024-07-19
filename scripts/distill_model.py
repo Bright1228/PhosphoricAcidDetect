@@ -23,6 +23,8 @@ import pickle
 import wandb
 import os
 import sys
+
+from scripts.train_model import DecoyWandb
 from signalp6.models import ProteinBertTokenizer, BertSequenceTaggingCRF
 from transformers import BertConfig
 import argparse

@@ -1,0 +1,56 @@
+24/07/07 20:09:16 - INFO - __main__ -   torch seed: 506157603173100
+24/07/07 20:09:16 - INFO - __main__ -   Saving to testruns\testrun1_test_0_valid_1_24-07-07-12-08-57
+24/07/07 20:09:16 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 196, in _new_conn
+    sock = connection.create_connection(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\connection.py", line 85, in create_connection
+    raise err
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\connection.py", line 73, in create_connection
+    sock.connect(sa)
+socket.timeout: timed out
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 789, in urlopen
+    response = self._make_request(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 490, in _make_request
+    raise new_e
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 466, in _make_request
+    self._validate_conn(conn)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 1095, in _validate_conn
+    conn.connect()
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 615, in connect
+    self.sock = sock = self._new_conn()
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connection.py", line 205, in _new_conn
+    raise ConnectTimeoutError(
+urllib3.exceptions.ConnectTimeoutError: (<urllib3.connection.HTTPSConnection object at 0x000002055BE7A820>, 'Connection to huggingface.co timed out. (connect timeout=10)')
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\adapters.py", line 589, in send
+    resp = conn.urlopen(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\connectionpool.py", line 843, in urlopen
+    retries = retries.increment(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\urllib3\util\retry.py", line 519, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /Rostlab/prot_bert/resolve/main/model.safetensors (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002055BE7A820>, 'Connection to huggingface.co timed out. (connect timeout=10)'))
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 1213, in <module>
+    main_training_loop(args)
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 728, in main_training_loop
+    model = MODEL_DICT[args.model_architecture][1].from_pretrained(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\modeling_utils.py", line 3494, in from_pretrained
+    if not has_file(pretrained_model_name_or_path, safe_weights_name, **has_file_kwargs):
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\utils\hub.py", line 655, in has_file
+    response = get_session().head(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\sessions.py", line 624, in head
+    return self.request("HEAD", url, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\huggingface_hub\utils\_http.py", line 66, in send
+    return super().send(request, *args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\requests\adapters.py", line 610, in send
+    raise ConnectTimeout(e, request=request)
+requests.exceptions.ConnectTimeout: (MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /Rostlab/prot_bert/resolve/main/model.safetensors (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002055BE7A820>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 7e9670a6-763f-4b79-8301-276eec34e3bd)')

@@ -1,0 +1,19 @@
+24/07/21 21:49:41 - INFO - __main__ -   torch seed: 471328213246100
+24/07/21 21:49:41 - INFO - __main__ -   Saving to training_run\BERT-CRF_test_0_valid_1_24-07-21-13-49-20
+24/07/21 21:49:41 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+Some weights of BertSequenceTaggingCRF were not initialized from the model checkpoint at Rostlab/prot_bert and are newly initialized: ['crf._constraint_end_mask', 'crf._constraint_mask', 'crf._constraint_start_mask', 'crf.end_transitions', 'crf.start_transitions', 'crf.transitions', 'outputs_to_emissions.bias', 'outputs_to_emissions.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+24/07/21 21:49:46 - INFO - __main__ -   Loaded weights from Rostlab/prot_bert for model bert
+24/07/21 21:49:46 - INFO - __main__ -   Training on [2], validating on 1
+Traceback (most recent call last):
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 1227, in <module>
+    main_training_loop(args)
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 798, in main_training_loop
+    train_data = LargeCRFPartitionDataset(
+  File "e:\signalp-6.0-main\src\signalp6\training_utils\datasets.py", line 475, in __init__
+    super().__init__(
+  File "e:\signalp-6.0-main\src\signalp6\training_utils\datasets.py", line 353, in __init__
+    super().__init__(data_path, tokenizer, add_special_tokens)
+  File "e:\signalp-6.0-main\src\signalp6\training_utils\datasets.py", line 227, in __init__
+    raise FileNotFoundError(self.data_file)
+FileNotFoundError: data\data\train_set.fasta

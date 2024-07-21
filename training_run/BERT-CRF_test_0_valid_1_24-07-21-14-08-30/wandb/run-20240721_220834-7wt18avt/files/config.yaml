@@ -1,0 +1,445 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.19
+    cli_version: 0.17.3
+    framework: huggingface
+    huggingface_version: 4.42.3
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1721570914
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      2:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      3:
+      - 13
+      - 23
+      4: 3.9.19
+      5: 0.17.3
+      6: 4.42.3
+      8:
+      - 3
+      - 5
+      13: windows-amd64
+seed:
+  desc: null
+  value: 472474414748300
+data:
+  desc: null
+  value: data/train_set.fasta
+sample_weights:
+  desc: null
+  value: null
+test_partition:
+  desc: null
+  value: 0
+validation_partition:
+  desc: null
+  value: 1
+lr:
+  desc: null
+  value: 10
+clip:
+  desc: null
+  value: 0.25
+epochs:
+  desc: null
+  value: 8000
+batch_size:
+  desc: null
+  value: 80
+wdecay:
+  desc: null
+  value: 1.2e-06
+optimizer:
+  desc: null
+  value: sgd
+output_dir:
+  desc: null
+  value: training_run\BERT-CRF_test_0_valid_1_24-07-21-14-08-30
+resume:
+  desc: null
+  value: Rostlab/prot_bert
+experiment_name:
+  desc: null
+  value: BERT-CRF
+crossval_run:
+  desc: null
+  value: false
+log_all_final_metrics:
+  desc: null
+  value: false
+num_seq_labels:
+  desc: null
+  value: 37
+num_global_labels:
+  desc: null
+  value: 6
+global_label_as_input:
+  desc: null
+  value: false
+region_regularization_alpha:
+  desc: null
+  value: 0
+lm_output_dropout:
+  desc: null
+  value: 0.1
+lm_output_position_dropout:
+  desc: null
+  value: 0.1
+use_sample_weights:
+  desc: null
+  value: false
+use_random_weighted_sampling:
+  desc: null
+  value: false
+positive_samples_weight:
+  desc: null
+  value: null
+average_per_kingdom:
+  desc: null
+  value: false
+crf_scaling_factor:
+  desc: null
+  value: 1.0
+use_weighted_kingdom_sampling:
+  desc: null
+  value: false
+random_seed:
+  desc: null
+  value: null
+additional_train_set:
+  desc: null
+  value: null
+model_architecture:
+  desc: null
+  value: bert_prottrans
+remove_top_layers:
+  desc: null
+  value: 0
+kingdom_embed_size:
+  desc: null
+  value: 0
+use_cs_tag:
+  desc: null
+  value: false
+kingdom_as_token:
+  desc: null
+  value: false
+sp_region_labels:
+  desc: null
+  value: false
+constrain_crf:
+  desc: null
+  value: false
+git commit ID:
+  desc: null
+  value: eb4372d
+return_dict:
+  desc: null
+  value: true
+output_hidden_states:
+  desc: null
+  value: false
+output_attentions:
+  desc: null
+  value: false
+torchscript:
+  desc: null
+  value: false
+torch_dtype:
+  desc: null
+  value: null
+use_bfloat16:
+  desc: null
+  value: false
+tf_legacy_loss:
+  desc: null
+  value: false
+pruned_heads:
+  desc: null
+  value: {}
+tie_word_embeddings:
+  desc: null
+  value: true
+chunk_size_feed_forward:
+  desc: null
+  value: 0
+is_encoder_decoder:
+  desc: null
+  value: false
+is_decoder:
+  desc: null
+  value: false
+cross_attention_hidden_size:
+  desc: null
+  value: null
+add_cross_attention:
+  desc: null
+  value: false
+tie_encoder_decoder:
+  desc: null
+  value: false
+max_length:
+  desc: null
+  value: 20
+min_length:
+  desc: null
+  value: 0
+do_sample:
+  desc: null
+  value: false
+early_stopping:
+  desc: null
+  value: false
+num_beams:
+  desc: null
+  value: 1
+num_beam_groups:
+  desc: null
+  value: 1
+diversity_penalty:
+  desc: null
+  value: 0.0
+temperature:
+  desc: null
+  value: 1.0
+top_k:
+  desc: null
+  value: 50
+top_p:
+  desc: null
+  value: 1.0
+typical_p:
+  desc: null
+  value: 1.0
+repetition_penalty:
+  desc: null
+  value: 1.0
+length_penalty:
+  desc: null
+  value: 1.0
+no_repeat_ngram_size:
+  desc: null
+  value: 0
+encoder_no_repeat_ngram_size:
+  desc: null
+  value: 0
+bad_words_ids:
+  desc: null
+  value: null
+num_return_sequences:
+  desc: null
+  value: 1
+output_scores:
+  desc: null
+  value: false
+return_dict_in_generate:
+  desc: null
+  value: false
+forced_bos_token_id:
+  desc: null
+  value: null
+forced_eos_token_id:
+  desc: null
+  value: null
+remove_invalid_values:
+  desc: null
+  value: false
+exponential_decay_length_penalty:
+  desc: null
+  value: null
+suppress_tokens:
+  desc: null
+  value: null
+begin_suppress_tokens:
+  desc: null
+  value: null
+architectures:
+  desc: null
+  value:
+  - BertForMaskedLM
+finetuning_task:
+  desc: null
+  value: null
+id2label:
+  desc: null
+  value:
+    '0': LABEL_0
+    '1': LABEL_1
+    '2': LABEL_2
+    '3': LABEL_3
+    '4': LABEL_4
+    '5': LABEL_5
+    '6': LABEL_6
+    '7': LABEL_7
+    '8': LABEL_8
+    '9': LABEL_9
+    '10': LABEL_10
+    '11': LABEL_11
+    '12': LABEL_12
+    '13': LABEL_13
+    '14': LABEL_14
+    '15': LABEL_15
+    '16': LABEL_16
+    '17': LABEL_17
+    '18': LABEL_18
+    '19': LABEL_19
+    '20': LABEL_20
+    '21': LABEL_21
+    '22': LABEL_22
+    '23': LABEL_23
+    '24': LABEL_24
+    '25': LABEL_25
+    '26': LABEL_26
+    '27': LABEL_27
+    '28': LABEL_28
+    '29': LABEL_29
+    '30': LABEL_30
+    '31': LABEL_31
+    '32': LABEL_32
+    '33': LABEL_33
+    '34': LABEL_34
+    '35': LABEL_35
+    '36': LABEL_36
+label2id:
+  desc: null
+  value:
+    LABEL_0: 0
+    LABEL_1: 1
+    LABEL_2: 2
+    LABEL_3: 3
+    LABEL_4: 4
+    LABEL_5: 5
+    LABEL_6: 6
+    LABEL_7: 7
+    LABEL_8: 8
+    LABEL_9: 9
+    LABEL_10: 10
+    LABEL_11: 11
+    LABEL_12: 12
+    LABEL_13: 13
+    LABEL_14: 14
+    LABEL_15: 15
+    LABEL_16: 16
+    LABEL_17: 17
+    LABEL_18: 18
+    LABEL_19: 19
+    LABEL_20: 20
+    LABEL_21: 21
+    LABEL_22: 22
+    LABEL_23: 23
+    LABEL_24: 24
+    LABEL_25: 25
+    LABEL_26: 26
+    LABEL_27: 27
+    LABEL_28: 28
+    LABEL_29: 29
+    LABEL_30: 30
+    LABEL_31: 31
+    LABEL_32: 32
+    LABEL_33: 33
+    LABEL_34: 34
+    LABEL_35: 35
+    LABEL_36: 36
+tokenizer_class:
+  desc: null
+  value: null
+prefix:
+  desc: null
+  value: null
+bos_token_id:
+  desc: null
+  value: null
+pad_token_id:
+  desc: null
+  value: 0
+eos_token_id:
+  desc: null
+  value: null
+sep_token_id:
+  desc: null
+  value: null
+decoder_start_token_id:
+  desc: null
+  value: null
+task_specific_params:
+  desc: null
+  value: null
+problem_type:
+  desc: null
+  value: null
+_name_or_path:
+  desc: null
+  value: Rostlab/prot_bert
+transformers_version:
+  desc: null
+  value: 4.42.3
+vocab_size:
+  desc: null
+  value: 30
+hidden_size:
+  desc: null
+  value: 1024
+num_hidden_layers:
+  desc: null
+  value: 30
+num_attention_heads:
+  desc: null
+  value: 16
+hidden_act:
+  desc: null
+  value: gelu
+intermediate_size:
+  desc: null
+  value: 4096
+hidden_dropout_prob:
+  desc: null
+  value: 0.0
+attention_probs_dropout_prob:
+  desc: null
+  value: 0.0
+max_position_embeddings:
+  desc: null
+  value: 40000
+type_vocab_size:
+  desc: null
+  value: 2
+initializer_range:
+  desc: null
+  value: 0.02
+layer_norm_eps:
+  desc: null
+  value: 1.0e-12
+position_embedding_type:
+  desc: null
+  value: absolute
+use_cache:
+  desc: null
+  value: true
+classifier_dropout:
+  desc: null
+  value: null
+xla_device:
+  desc: null
+  value: false
+use_large_crf:
+  desc: null
+  value: true
+model_type:
+  desc: null
+  value: bert

@@ -1,0 +1,67 @@
+24/07/21 22:06:10 - INFO - __main__ -   torch seed: 472317763226900
+24/07/21 22:06:10 - INFO - __main__ -   Saving to training_run\BERT-CRF_test_0_valid_1_24-07-21-14-05-53
+24/07/21 22:06:10 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+Some weights of BertSequenceTaggingCRF were not initialized from the model checkpoint at Rostlab/prot_bert and are newly initialized: ['crf._constraint_end_mask', 'crf._constraint_mask', 'crf._constraint_start_mask', 'crf.end_transitions', 'crf.start_transitions', 'crf.transitions', 'outputs_to_emissions.bias', 'outputs_to_emissions.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+24/07/21 22:06:18 - INFO - __main__ -   Loaded weights from Rostlab/prot_bert for model bert
+24/07/21 22:06:18 - INFO - __main__ -   Training on [2], validating on 1
+24/07/21 22:06:18 - INFO - __main__ -   7002 training sequences, 7392 validation sequences.
+24/07/21 22:06:18 - INFO - __main__ -   Data loaded. One epoch = 88 batches.
+24/07/21 22:06:18 - INFO - __main__ -   Logging experiment as BERT-CRF_0_1_24-07-21-14-05-53 to wandb/tensorboard
+24/07/21 22:06:18 - INFO - __main__ -   Saving checkpoints at training_run\BERT-CRF_test_0_valid_1_24-07-21-14-05-53
+24/07/21 22:06:21 - INFO - __main__ -   Model set up!
+24/07/21 22:06:21 - INFO - __main__ -   Model has 419970504 trainable parameters
+24/07/21 22:06:21 - INFO - __main__ -   Running model on cuda, not using nvidia apex
+24/07/21 22:06:21 - INFO - __main__ -   Starting epoch 1
+D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py:439: UserWarning: 1Torch was not compiled with flash attention. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\builder\windows\pytorch\aten\src\ATen\native\transformers\cuda\sdp_utils.cpp:455.)
+  attn_output = torch.nn.functional.scaled_dot_product_attention(
+Traceback (most recent call last):
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 1227, in <module>
+    main_training_loop(args)
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 912, in main_training_loop
+    epoch_loss, global_step = train(
+  File "E:\PhosphoricAcidDetect\PhosphoricAcidDetect\scripts\train_model.py", line 345, in train
+    loss, global_probs, pos_probs, pos_preds = model(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "e:\signalp-6.0-main\src\signalp6\models\bert_crf.py", line 221, in forward
+    outputs = self.bert(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 1141, in forward
+    encoder_outputs = self.encoder(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 694, in forward
+    layer_outputs = layer_module(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 584, in forward
+    self_attention_outputs = self.attention(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 514, in forward
+    self_outputs = self.self(
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\transformers\models\bert\modeling_bert.py", line 408, in forward
+    value_layer = self.transpose_for_scores(self.value(current_states))
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Library\Anaconda\envs\protein\lib\site-packages\torch\nn\modules\linear.py", line 116, in forward
+    return F.linear(input, self.weight, self.bias)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 24.00 MiB. GPU

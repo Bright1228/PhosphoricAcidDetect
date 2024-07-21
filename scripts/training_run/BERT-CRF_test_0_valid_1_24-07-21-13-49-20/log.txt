@@ -1,0 +1,5 @@
+24/07/21 21:49:41 - INFO - __main__ -   torch seed: 471328213246100
+24/07/21 21:49:41 - INFO - __main__ -   Saving to training_run\BERT-CRF_test_0_valid_1_24-07-21-13-49-20
+24/07/21 21:49:41 - INFO - __main__ -   Loading pretrained model in Rostlab/prot_bert
+24/07/21 21:49:46 - INFO - __main__ -   Loaded weights from Rostlab/prot_bert for model bert
+24/07/21 21:49:46 - INFO - __main__ -   Training on [2], validating on 1

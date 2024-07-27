@@ -154,7 +154,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
 
         # 设置CRF层的输入长度，这里的70是data目录下一众fasta的长度，目前的实现是在不能通过输入数据或标签来控制序列长度的情况下使用的硬编码值
         # 不知道要不要修改，因为数据不是截成70，划分的话肯定会预测不准的
-        self.crf_input_length = 70
+        self.crf_input_length = 700
         # TODO make this part of config if needed. Now it's for cases where I don't control that via input data or labels.
 
         ## Hidden states to CRF emissions

@@ -12,6 +12,7 @@ from transformers import PreTrainedTokenizer
 from collections import defaultdict
 
 from .label_processing_utils import process_SP
+from .label_processing_utils import process_PA
 
 # 这里是定义信号肽类型的，用于预测，在此定义一个新的结构用于判断磷酸化
 # [S: Sec/SPI signal peptide | T: Tat/SPI signal peptide | L: Sec/SPII signal peptide | I: cytoplasm | M: transmembrane | O: extracellular]
@@ -117,6 +118,37 @@ def subset_dataset(
     assert select_idx.sum() > 0, "This id combination does not yield any sequences!"
 
     # index in numpy, and then return again as lists.
+    identifiers_out, sequences_out, labels_out = [
+        list(np.array(x)[select_idx]) for x in [identifiers, sequences, labels]
+    ]
+
+    return identifiers_out, sequences_out, labels_out
+
+# 实际上这个函数涉及到区分训练集，还是要用的
+# 实际的训练集中，identifiers表示为protein_id|...|partition_id
+def subset_dataset_PA(
+    identifiers: List[str],
+    sequences: List[str],
+    labels: List[str],
+    partition_id: List[int],
+):
+    """Extract a subset from the complete .fasta dataset based on partition_id"""
+
+    # break up the identifier into elements
+    parsed = [element.lstrip(">").split("|") for element in identifiers]
+    acc_ids = [elements[0] for elements in parsed]
+    partition_ids = [int(elements[-1]) for elements in parsed]
+
+    # partition_id在调用这个函数时会传入数组，就是所有的集合
+    partition_ids = np.array(partition_ids)
+
+    part_idx = np.isin(partition_ids, partition_id)
+
+    select_idx = part_idx
+    assert select_idx.sum() > 0, "This partition id combination does not yield any sequences!"
+
+    # index in numpy, and then return again as lists.
+    # 这里就是根据筛选结果，保留一部分序列
     identifiers_out, sequences_out, labels_out = [
         list(np.array(x)[select_idx]) for x in [identifiers, sequences, labels]
     ]
@@ -506,6 +538,70 @@ class PhosphoicAcidThreeLineFastaDataset(Dataset):
         # 理论上应该返回一个字典，这里尝试一下
         return return_dict
 
+# 这个类可以形成分组，删除掉针对kingdom等的处理
+class PartitionThreeLineFastaDatasetPA(ThreeLineFastaDataset):
+    def __init__(
+        self,
+        data_path: Union[str, Path],
+        sample_weights_path: Union[str, Path] = None,
+        tokenizer: Union[str, PreTrainedTokenizer] = "iupac",
+        partition_id: List[str] = [0, 1, 2],
+        add_special_tokens=False,
+        one_versus_all=False,
+        positive_samples_weight=None,
+        return_kingdom_ids=False,
+    ):
+        super().__init__(data_path, tokenizer, add_special_tokens)
+        self.partition_id = partition_id
+        if not one_versus_all:
+            self.identifiers, self.sequences, self.labels = subset_dataset_PA(
+                self.identifiers,
+                self.sequences,
+                self.labels,
+                partition_id,
+            )
+        else:
+            # retain all types
+            self.identifiers, self.sequences, self.labels = subset_dataset_PA(
+                self.identifiers,
+                self.sequences,
+                self.labels,
+                partition_id,
+            )
+
+        # >A8FLJ3|NEGATIVE|TAT|0
+        # self.global_labels = [x.split("|")[2] for x in self.identifiers]
+
+        # 默认不添加，暂保留
+        if return_kingdom_ids:
+            self.kingdom_ids = [x.split("|")[1] for x in self.identifiers]
+
+            count_dict = defaultdict(lambda: 0)
+            for x in self.kingdom_ids:
+                count_dict[x] += 1
+
+            self.balanced_sampling_weights = [
+                1.0 / count_dict[i] for i in self.kingdom_ids
+            ]
+
+        if sample_weights_path is not None:
+            sample_weights_df = pd.read_csv(sample_weights_path, index_col=0)
+            subset_ids = [x.split("|")[0].lstrip(">") for x in self.identifiers]
+            df_subset = sample_weights_df.loc[subset_ids]
+            self.sample_weights = list(df_subset["0"])
+        elif positive_samples_weight is not None:
+            # make weights from global labels
+            self.sample_weights = [
+                positive_samples_weight if label in ["SP", "LIPO", "TAT"] else 1
+                for label in self.global_labels
+            ]
+        # NOTE this is just to make the training script more adaptable without having to change batch handling everytime. Always make weights,
+        # decide in training script whether or not to use
+        else:
+            # 不是作为globa_labels来进行，而是给整个第一行添加权重
+            # self.sample_weights = [1 for label in self.global_labels]
+            self.sample_weights = [1 for _ in self.identifiers]
+
 # 这个类相当于进行特殊处理，比如界、全局标签等，我删除了这些东西，暂不处理
 class PartitionThreeLineFastaDataset(ThreeLineFastaDataset):
     """Creates a dataset from a SignalP format 3-line .fasta file.
@@ -599,6 +695,7 @@ class PartitionThreeLineFastaDataset(ThreeLineFastaDataset):
         # decide in training script whether or not to use
         else:
             self.sample_weights = [1 for label in self.global_labels]
+
 
 
 EXTENDED_VOCAB = [
@@ -727,6 +824,87 @@ class LargeCRFPartitionDataset(PartitionThreeLineFastaDataset):
             np.array(label_ids),
             np.array(input_mask),
             global_label_id,
+        )
+
+        if weight is not None:
+            return_tuple = return_tuple + (weight,)
+        if kingdom_id is not None:
+            return_tuple = return_tuple + (kingdom_id,)
+
+        return return_tuple
+
+class LargeCRFPartitionDatasetPA(PartitionThreeLineFastaDatasetPA):
+    def __init__(
+        self,
+        data_path: Union[str, Path],
+        sample_weights_path=None,
+        tokenizer: Union[str, PreTrainedTokenizer] = "iupac",
+        partition_id: List[str] = [0, 1, 2],
+        add_special_tokens=False,
+        one_versus_all=False,
+        positive_samples_weight=None,
+        return_kingdom_ids=False,
+        make_cs_state=False,
+    ):
+        super().__init__(
+            data_path,
+            sample_weights_path,
+            tokenizer,
+            partition_id,
+            add_special_tokens,
+            one_versus_all,
+            positive_samples_weight,
+            return_kingdom_ids,
+        )
+        # self.label_tokenizer = SP_label_tokenizer(
+        #     EXTENDED_VOCAB_CS if make_cs_state else EXTENDED_VOCAB
+        # )
+        self.label_tokenizer = PhosphoicAcid_label_tokenizer()
+        self.make_cs_state = make_cs_state
+
+    def __getitem__(self, index):
+        item = self.sequences[index]
+        labels = self.labels[index]
+        # global_label = self.global_labels[index]
+        weight = self.sample_weights[index] if hasattr(self, "sample_weights") else None
+        kingdom_id = (
+            SIGNALP_KINGDOM_DICT[self.kingdom_ids[index]]
+            if hasattr(self, "kingdom_ids")
+            else None
+        )
+
+        if self.add_special_tokens == True:
+            token_ids = self.tokenizer.encode(item, kingdom_id=self.kingdom_ids[index])
+        else:
+            token_ids = self.tokenizer.tokenize(item)  # + [self.tokenizer.stop_token]
+            token_ids = self.tokenizer.convert_tokens_to_ids(token_ids)
+
+        # 这里不清楚为什么要替换，暂先不替换
+        # dependent on the global label, convert and tokenize labels
+        # labels = (
+        #     labels.replace("L", "S").replace("T", "S").replace("P", "S")
+        # )  # all sp-same letter, type info comes from global label in next step
+
+
+        # If make_cs_state, convert position before the cs from 'S' to 'C'
+        if self.make_cs_state:
+            last_idx = labels.rfind("S")
+            if last_idx != -1:
+                l = list(labels)
+                l[last_idx] = "C"
+                labels = "".join(l)
+
+        # converted_labels = [global_label + "_" + lab for lab in labels]
+        # label_ids = self.label_tokenizer.convert_tokens_to_ids(converted_labels)
+        # global_label_id = SIGNALP6_GLOBAL_LABEL_DICT[global_label]
+        label_ids = self.label_tokenizer.sequence_to_token_ids(labels)
+
+        input_mask = np.ones_like(token_ids)
+
+        return_tuple = (
+            np.array(token_ids),
+            np.array(label_ids),
+            np.array(input_mask),
         )
 
         if weight is not None:
@@ -959,6 +1137,225 @@ class RegionCRFDataset(Dataset):
         cleavage_sites = torch.tensor(cleavage_sites)
 
         return_tuple = (data, targets, mask, global_targets, cleavage_sites)
+        if hasattr(self, "sample_weights"):
+            sample_weights = torch.tensor(sample_weights)
+            return_tuple = return_tuple + (sample_weights,)
+        if hasattr(self, "kingdom_ids"):
+            kingdom_ids = torch.tensor(kingdom_ids)
+            return_tuple = return_tuple + (kingdom_ids,)
+
+        return return_tuple
+
+
+class RegionCRFDatasetPA(Dataset):
+    """
+    Converts label sequences to array for multi-state crf。
+    data_path:              训练集的 3 行 fasta 文件
+    sample_weights_path:    可选的 df，其中包含 data_path 中每个条目的权重
+    tokenizer:              用于序列转换的分词器
+    原本处理数据格式为：>Q8TF40|EUKARYA|NO_SP|0
+    对应为：>蛋白质唯一标识|kingdom_id|type_id|partition_id，除唯一标识外，均不使用
+    partition_id:           要使用的分区 ID 列表
+    kingdom_id:             要使用的界 ID 列表
+    type_id:                要使用的类型 ID 列表
+    add_special_tokens:     在序列中添加 cls 和 sep 标记
+    label_vocab:            标签序列的字符串-整数映射
+    global_label_dict:      全局标签的字符串-整数映射
+    positive_samples_weight: 可选的权重，返回正样本的权重（用于损失缩放）
+    return_kingdom_ids:     已弃用，现在总是返回界 ID
+    make_cs_state:          已弃用，未为多标签实现 cs 状态
+    add_global_label:       将全局标签作为标记添加到序列的开头
+    augment_data_paths:     包含增强样本的其他 3 行 fasta 文件的路径。将添加到真实数据中。
+    vary_n_region: 随机将 n 区域设为前 2 或 3 个残基。
+
+    """
+    def __init__(
+        self,
+        data_path: Union[str, Path],
+        sample_weights_path=None,
+        tokenizer: Union[str, PreTrainedTokenizer] = "iupac",
+        partition_id: List[str] = [0, 1, 2, 3, 4],
+        kingdom_id: List[str] = ["EUKARYA", "ARCHAEA", "NEGATIVE", "POSITIVE"],
+        type_id: List[str] = ["LIPO", "NO_SP", "SP", "TAT", "TATLIPO", "PILIN"],
+        add_special_tokens=False,
+        label_vocab=None,
+        global_label_dict=None,
+        positive_samples_weight=None,
+        return_kingdom_ids=False,  # legacy
+        make_cs_state=False,  # legacy to not break code when just plugging in this dataset
+        add_global_label=False,
+        augment_data_paths: List[Union[str, Path]] = None,
+        vary_n_region=False,
+    ):
+
+        super().__init__()
+
+        # set up parameters
+
+        # 转化路径为Path并检查存在与否
+        self.data_file = Path(data_path)
+        if not self.data_file.exists():
+            raise FileNotFoundError(self.data_file)
+
+        # 两个默认为False,也不需要修改
+        self.add_special_tokens = add_special_tokens
+        self.vary_n_region = vary_n_region
+
+        # 配置label解释器，改成用于检测磷酸的
+        # self.label_tokenizer = SP_label_tokenizer()
+        self.label_tokenizer = PhosphoicAcid_label_tokenizer()
+
+        # 指定氨基酸的解码器，即第二行的sequence，这里一般就使用默认的iupac即可
+        if isinstance(tokenizer, str):
+            from tape import TAPETokenizer
+
+            tokenizer = TAPETokenizer(vocab=tokenizer)
+        self.tokenizer = tokenizer
+
+        # 设置标签词汇表和全局标签字典,全局标签字典不需要使用但是需要重新定义一下label_vocab
+        # Process_SP定义在label_processing_utils.py文件中
+        self.label_vocab = label_vocab  # None is fine, process_SP will use default
+        # 默认为False，不添加
+        self.add_global_label = add_global_label
+        # 不初始化global_label_dict
+        # self.global_label_dict = (
+        #     global_label_dict
+        #     if global_label_dict is not None
+        #     else SIGNALP6_GLOBAL_LABEL_DICT
+        # )
+
+        # 这部分全都不用
+        # self.type_id = type_id
+        # self.partition_id = partition_id
+        # self.kingdom_id = kingdom_id
+
+        # Load and filter the data
+
+        self.identifiers, self.sequences, self.labels = parse_threeline_fasta(
+            self.data_file
+        )
+
+        # 增强用的，一般制定为None即可，这里就不会执行
+        if augment_data_paths is not None and augment_data_paths[0] is not None:
+            for path in augment_data_paths:
+                ids, seqs, labs = parse_threeline_fasta(path)
+                self.identifiers = self.identifiers + ids
+                self.sequences = self.sequences + seqs
+                self.labels = self.labels + labs
+
+        # subset_dataset 函数的主要作用是根据分区 ID、界 ID 和类型 ID 筛选出匹配的标识符、序列和标签,我们这里不需要进行筛选，默认都设置为1
+        # self.identifiers, self.sequences, self.labels = subset_dataset(
+        #     self.identifiers,
+        #     self.sequences,
+        #     self.labels,
+        #     partition_id,
+        #     kingdom_id,
+        #     type_id,
+        # )
+        # 数据的全局标签以及界标签，这里也不需要添加，删除掉
+        # self.global_labels = [x.split("|")[2] for x in self.identifiers]
+        # self.kingdom_ids = [x.split("|")[1] for x in self.identifiers]
+
+        # make kingdom-balanced sampling weights to use if needed
+        # count_dict = defaultdict(lambda: 0)
+        # for x in self.kingdom_ids:
+        #     count_dict[x] += 1
+        # self.balanced_sampling_weights = [1.0 / count_dict[i] for i in self.kingdom_ids]
+
+        # make sample weights for either loss scaling or balanced sampling, if none defined weight=1 for each item
+        # 如果说提供了路径，那就对遍历进行比对，但是要考虑global的问题，这里修改为下面的默认设置为1
+        # if sample_weights_path is not None:
+        #     sample_weights_df = pd.read_csv(sample_weights_path, index_col=0)
+        #     subset_ids = [x.split("|")[0].lstrip(">") for x in self.identifiers]
+        #     df_subset = sample_weights_df.loc[subset_ids]
+        #     self.sample_weights = list(df_subset["0"])
+        # elif positive_samples_weight is not None:
+        #     # make weights from global labels
+        #     self.sample_weights = [
+        #         positive_samples_weight if label in ["SP", "LIPO", "TAT"] else 1
+        #         for label in self.global_labels
+        #     ]
+        # # NOTE this is just to make the training script more adaptable without having to change batch handling everytime. Always make weights,
+        # # decide in training script whether or not to use
+        # else:
+        #     self.sample_weights = [1 for label in self.global_labels]
+        if sample_weights_path is not None:
+            sample_weights_df = pd.read_csv(sample_weights_path, index_col=0)
+            subset_ids = [x.split("|")[0].lstrip(">") for x in self.identifiers]
+            df_subset = sample_weights_df.loc[subset_ids]
+            self.sample_weights = list(df_subset["0"])
+        else:
+            self.sample_weights = [1 for _ in self.identifiers]
+
+    def __len__(self) -> int:
+        return len(self.sequences)
+
+    # 相比较SP，删除了主要删除了利用global_id处理切割位点的相关代码
+    def __getitem__(self, index):
+        item = self.sequences[index]
+        labels = self.labels[index]
+        weight = self.sample_weights[index] if hasattr(self, "sample_weights") else None
+
+        token_ids = self.tokenizer.tokenize(item)
+        token_ids = self.tokenizer.convert_tokens_to_ids(token_ids)
+
+        # process_PA将会默认调用处理磷酸化的逻辑
+        label_matrix = process_PA(
+            labels,
+            item,
+            vocab=self.label_vocab,
+        )
+
+        input_mask = np.ones_like(token_ids)
+
+        return_tuple = (
+            np.array(token_ids),
+            label_matrix,
+            np.array(input_mask),
+        )
+
+        if weight is not None:
+            return_tuple = return_tuple + (weight,)
+
+        return return_tuple
+
+    # 定义一个新的collate_fn，但是去掉对于kingdomId与globalID的处理
+    def collate_fn(self, batch: List[Any]) -> Dict[str, torch.Tensor]:
+        # unpack the list of tuples
+        if hasattr(self, "sample_weights") and hasattr(self, "kingdom_ids"):
+            (
+                input_ids,
+                label_ids,
+                mask,
+                global_label_ids,
+                cleavage_sites,
+                sample_weights,
+                kingdom_ids,
+            ) = tuple(zip(*batch))
+        elif hasattr(self, "sample_weights"):
+            input_ids, label_ids, mask, global_label_ids, sample_weights, cs = tuple(
+                zip(*batch)
+            )
+        elif hasattr(self, "kingdom_ids"):
+            input_ids, label_ids, mask, global_label_ids, kingdom_ids, cs = tuple(
+                zip(*batch)
+            )
+        else:
+            input_ids, label_ids, mask = tuple(zip(*batch))
+
+        data = torch.from_numpy(pad_sequences(input_ids, 0))
+
+        # ignore_index is -1
+        targets = pad_sequences(label_ids, -1)
+        targets = np.stack(targets)
+        targets = torch.from_numpy(targets)
+        mask = torch.from_numpy(pad_sequences(mask, 0))
+        # global_targets = torch.tensor(global_label_ids)
+        # cleavage_sites = torch.tensor(cleavage_sites)
+
+        # return_tuple = (data, targets, mask, global_targets, cleavage_sites)
+        return_tuple = (data, targets, mask)
+
         if hasattr(self, "sample_weights"):
             sample_weights = torch.tensor(sample_weights)
             return_tuple = return_tuple + (sample_weights,)

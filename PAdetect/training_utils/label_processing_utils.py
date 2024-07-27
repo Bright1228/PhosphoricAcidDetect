@@ -123,6 +123,13 @@ SP_REGION_VOCAB = {
     "PILIN_O": 36,
 }
 
+# 磷酸化词汇表，相较于信号肽的37种，这里只有两种情况
+PHOSPHORYLATION_VOCAB = {
+    "NON_PHOSPHORYLATED": 0,
+    "PHOSPHORYLATED": 1,
+}
+
+
 
 def apply_sliding_hydrophobicity_window(sequence: np.ndarray, window_size=7) -> int:
     """Run a window of window_size over sequence and compute hydrophobicity.
@@ -344,4 +351,43 @@ def process_SP(
     assert not any(
         tag_matrix.sum(axis=1) == 0
     ), f"Processing {sp_type} failed. There are positions where no state was set active. \n {aa_sequence}"
+    return tag_matrix
+
+
+def process_PA(
+        label_sequence: str,
+        aa_sequence: str,
+        vocab: Dict[str, int] = None,
+) -> np.ndarray:
+    """Generate multi-state tag array from phosphorylation label string and sequence.
+    Inputs:
+        label_sequence: sequence of ground-truth label in phosphorylation format
+        aa_sequence: amino acid sequence, same length as label_sequence
+        sp_type: type of the sequence (not used in this simplified version)
+        vocab: dict that maps states to their index
+    Returns:
+        tag_matrix: zero matrix of shape (seq_len, vocab_values) with ones
+                    where the respective label is true
+    """
+    if vocab is None:
+        vocab = PHOSPHORYLATION_VOCAB
+
+    # 创建一个形状为 (len(label_sequence), vocab_size) 的零矩阵 tag_matrix
+    # 具体而言形状是这样，假如一共有2个氨基酸，共有三种可能
+    # 为2*3
+    vocab_size = len(set(vocab.values()))  # real vocab size, ignore duplicate mappings
+    tag_matrix = np.zeros((len(label_sequence), vocab_size))
+
+    label_array = np.array([x for x in label_sequence])
+
+    phosphorylated_idx = np.where(label_array == "1")
+    non_phosphorylated_idx = np.where(label_array == "0")
+
+    tag_matrix[non_phosphorylated_idx, vocab["NON_PHOSPHORYLATED"]] = 1
+    tag_matrix[phosphorylated_idx, vocab["PHOSPHORYLATED"]] = 1
+
+    assert not any(
+        tag_matrix.sum(axis=1) == 0
+    ), f"Processing failed. There are positions where no state was set active. \n {aa_sequence}"
+
     return tag_matrix

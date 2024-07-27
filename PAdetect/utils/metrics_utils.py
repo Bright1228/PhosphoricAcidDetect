@@ -624,6 +624,7 @@ def get_metrics_multistate(
     # handle array datasets (small organism test sets)
     if type(data) == tuple:
         data, all_global_targets, all_cs_targets = data
+        # 解包数据并运行预测
         all_global_probs, all_pos_preds = run_data_array(model, data)
         kingdom_ids = ["DEFAULT"] * len(
             all_global_targets
@@ -667,3 +668,40 @@ def get_metrics_multistate(
         metrics.update(region_metrics)
 
     return metrics
+
+def get_metrics_multistate_simple(
+    model,
+    data=Union[Tuple[np.ndarray, np.ndarray], torch.utils.data.DataLoader],
+    sp_tokens=None,
+    compute_region_metrics=True,
+):
+    """Modified to remove global label, cleavage site, and kingdom ID related parts"""
+
+    if sp_tokens is None:
+        sp_tokens = [5, 11, 19, 26, 31]
+
+    print(f"Using SP tokens {sp_tokens} to infer cleavage site.")
+
+    # handle array datasets (small organism test sets)
+    if type(data) == tuple:
+        data, all_targets = data
+        all_probs, all_pos_preds = run_data_array(model, data)
+    # handle dataloader (signalp data)
+    else:
+        all_input_ids, all_targets, all_probs, all_pos_preds = run_data_regioncrfdataset(model, data)
+
+    all_preds = all_probs.argmax(axis=1)
+    print(all_preds)
+
+    metrics = compute_metrics(
+        all_targets,
+        all_preds,
+    )
+    if compute_region_metrics:
+        region_metrics = get_region_metrics(
+            all_targets, all_pos_preds, all_input_ids
+        )
+        metrics.update(region_metrics)
+
+    return metrics
+

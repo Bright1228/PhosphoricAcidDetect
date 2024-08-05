@@ -24,8 +24,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # 获取项目根目录
 project_root = os.path.abspath(os.path.join(script_dir, os.pardir))
 
+
 # 下面是自定义的库的引入
-from PAdetect import (
+from pa_detect import (
     LargeCRFPartitionDataset,
     RegionCRFDataset,
     SIGNALP6_GLOBAL_LABEL_DICT,
@@ -40,6 +41,7 @@ from PAdetect import (
     class_aware_cosine_similarities,
     get_region_lengths
 )
+
 
 
 # 这边用wandb进行一些数据的记录
@@ -356,6 +358,12 @@ def train(
     # sp_region_labels 参数用于指示是否在训练过程中使用信号肽区域标签，即signal peptide region labels，区别在于是否使用切割位点进行训练
     # 不添加即可，这个参数也不会被加入
     # 但是需要删除kingdom_ids与global_targets
+    # 原本的为：data,
+    #                 targets,
+    #                 input_mask,
+    #                 global_targets,
+    #                 sample_weights,
+    #                 kingdom_ids,
     for i, batch in enumerate(train_data):
         if args.sp_region_labels:
             (
@@ -372,18 +380,16 @@ def train(
                 data,
                 targets,
                 input_mask,
-                global_targets,
                 sample_weights,
-                kingdom_ids,
             ) = batch
 
         # 将数据和标签传递到指定的设备上
         data = data.to(device)
         targets = targets.to(device)
         input_mask = input_mask.to(device)
-        global_targets = global_targets.to(device)
+        # global_targets = global_targets.to(device)
         sample_weights = sample_weights.to(device) if args.use_sample_weights else None
-        kingdom_ids = kingdom_ids.to(device)
+        # kingdom_ids = kingdom_ids.to(device)
 
         # 清零优化器的梯度。
         # 前向传播，计算损失和预测结果。

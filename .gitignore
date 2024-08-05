@@ -4,3 +4,4 @@ signalp6.egg-info/
 *.pyo
 checkpoints/ensemble_model_signalp6.pt
 pytorch_model.bin
+training_run/

@@ -189,44 +189,45 @@ class CRF(nn.Module):
         """
         # assert (tags is not tag_bitmap), "Provide either tags or tag_bitmap"
 
+
         # 添加调试信息
-        print("CRF的forward开始执行！")
-        if self.batch_first is True:
-            print(Fore.YELLOW + "emission expect type:(batch_size, seq_length, num_tags)")
-        else:
-            print(Fore.YELLOW + "expect type:(seq_length, batch_size, num_tags)")
-        print(Fore.YELLOW + f"Forward - Emissions shape: {emissions.shape}")
-        print(Fore.YELLOW + f"Forward - Emissions content: {emissions}")
-
-        if tags is not None:
-            if self.batch_first is True:
-                print(Fore.YELLOW + "tags expect type:(batch_size, seq_length)")
-            else:
-                print(Fore.YELLOW + "tags expect type:(seq_length, batch_size)")
-            print(Fore.YELLOW + f"Forward - Tags shape: {tags.shape}")
-            print(Fore.YELLOW + f"Forward - Tags content: {tags}")
-        else:
-            print(Fore.YELLOW + "tags is none")
-
-        if tag_bitmap is not None:
-            if self.batch_first is True:
-                print(Fore.YELLOW + "tags_bitmap expect type:(batch_size, seq_length, num_tags)")
-            else:
-                print(Fore.YELLOW + "tags_bitmaps expect type:(seq_length, batch_size, num_tags))")
-            print(Fore.YELLOW + f"Forward - Tag Bitmap shape: {tag_bitmap.shape}")
-            print(Fore.YELLOW + f"Forward - Tag Bitmap content: {tag_bitmap}")
-        else:
-            print(Fore.YELLOW + "tag_bitmap is none")
-
-        if mask is not None:
-            if self.batch_first is True:
-                print(Fore.YELLOW + "mask expect type:(batch_size, seq_length)")
-            else:
-                print(Fore.YELLOW + "mask expect type:(seq_length, batch_size)")
-            print(Fore.YELLOW + f"Forward - Mask shape: {mask.shape}")
-            print(Fore.YELLOW + f"Forward - Mask content: {mask}")
-        else:
-            print(Fore.YELLOW + "mask is none")
+        # print("CRF的forward开始执行！")
+        # if self.batch_first is True:
+        #     print(Fore.YELLOW + "emission expect type:(batch_size, seq_length, num_tags)")
+        # else:
+        #     print(Fore.YELLOW + "expect type:(seq_length, batch_size, num_tags)")
+        # print(Fore.YELLOW + f"Forward - Emissions shape: {emissions.shape}")
+        # print(Fore.YELLOW + f"Forward - Emissions content: {emissions}")
+        #
+        # if tags is not None:
+        #     if self.batch_first is True:
+        #         print(Fore.YELLOW + "tags expect type:(batch_size, seq_length)")
+        #     else:
+        #         print(Fore.YELLOW + "tags expect type:(seq_length, batch_size)")
+        #     print(Fore.YELLOW + f"Forward - Tags shape: {tags.shape}")
+        #     print(Fore.YELLOW + f"Forward - Tags content: {tags}")
+        # else:
+        #     print(Fore.YELLOW + "tags is none")
+        #
+        # if tag_bitmap is not None:
+        #     if self.batch_first is True:
+        #         print(Fore.YELLOW + "tags_bitmap expect type:(batch_size, seq_length, num_tags)")
+        #     else:
+        #         print(Fore.YELLOW + "tags_bitmaps expect type:(seq_length, batch_size, num_tags))")
+        #     print(Fore.YELLOW + f"Forward - Tag Bitmap shape: {tag_bitmap.shape}")
+        #     print(Fore.YELLOW + f"Forward - Tag Bitmap content: {tag_bitmap}")
+        # else:
+        #     print(Fore.YELLOW + "tag_bitmap is none")
+        #
+        # if mask is not None:
+        #     if self.batch_first is True:
+        #         print(Fore.YELLOW + "mask expect type:(batch_size, seq_length)")
+        #     else:
+        #         print(Fore.YELLOW + "mask expect type:(seq_length, batch_size)")
+        #     print(Fore.YELLOW + f"Forward - Mask shape: {mask.shape}")
+        #     print(Fore.YELLOW + f"Forward - Mask content: {mask}")
+        # else:
+        #     print(Fore.YELLOW + "mask is none")
 
         if tag_bitmap is not None:
             self._validate(emissions, tags=tag_bitmap[:, :, 0], mask=mask)
@@ -277,7 +278,7 @@ class CRF(nn.Module):
         if reduction == "mean":
             return llh.mean()
         assert reduction == "token_mean"
-        print("CRF的forward执行完毕，准备返回信息！")
+        # print("CRF的forward执行完毕，准备返回信息！")
         return llh.sum() / mask.float().sum()
 
     def decode(

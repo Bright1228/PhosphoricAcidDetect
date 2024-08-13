@@ -5,6 +5,7 @@ import sys
 from .multi_tag_crf import CRF
 from typing import Tuple
 from transformers import BertModel, BertPreTrainedModel, BertTokenizer
+from transformers import T5Model, T5PreTrainedModel, T5Tokenizer
 import re
 
 
@@ -24,7 +25,7 @@ class SequenceDropout(nn.Module):
         # 没有训练或者概率设0，则不执行
         if not self.training or self.dropout == 0:
             return x
-        print("SeqDropout的forward开始执行")
+        # print("SeqDropout的forward开始执行")
 
         # 如果输入x的格式不是batch_first（即第一个维度不是批量大小），则交换第一维和第二维
         if not self.batch_first:
@@ -39,7 +40,7 @@ class SequenceDropout(nn.Module):
         after_dropout = mask_expanded * x
         if not self.batch_first:
             after_dropout = after_dropout.transpose(0, 1)
-        print("SequenceDropout执行完毕，准备返回信息！")
+        # print("SequenceDropout执行完毕，准备返回信息！")
 
         return after_dropout
 
@@ -94,6 +95,71 @@ class ProteinBertTokenizer:
         return cls(checkpoint, **kwargs)
     # 用于创建类的实例，checkpoint可以指向预训练的模型或者路径
 
+class ProteinT5Tokenizer:
+    class ProteinT5Tokenizer:
+        """Wrapper class for Huggingface T5Tokenizer.
+        Implements an encode() method that takes care of:
+        - inserting spaces between amino acids
+        - 在氨基酸之间插入空格
+        - handling ambiguous amino acids by converting 'U', 'Z', 'O', 'B' to 'X'
+        - 处理模糊的氨基酸，将'U'、'Z'、'O'、'B' 转换为 'X'
+        """
+
+        def __init__(self, *args, **kwargs):
+            # 初始化T5分词器
+            self.tokenizer = T5Tokenizer.from_pretrained(*args, **kwargs)
+
+        def encode(self, sequence, padding='longest'):
+            """
+            Encodes the input protein sequence into token IDs.
+
+            Args:
+                sequence (str): The protein sequence to be encoded.
+                padding (str): Padding strategy ('longest', 'max_length', etc.)
+
+            Returns:
+                input_ids (torch.Tensor): Tensor of input IDs.
+                attention_mask (torch.Tensor): Tensor of attention masks.
+            """
+            # 在氨基酸之间插入空格
+            sequence = " ".join(list(re.sub(r"[UZOB]", "X", sequence)))
+
+            # 使用T5分词器对序列进行编码，并进行padding
+            ids = self.tokenizer.batch_encode_plus(
+                [sequence],
+                add_special_tokens=True,
+                padding=padding
+            )
+            input_ids = torch.tensor(ids['input_ids'])
+            attention_mask = torch.tensor(ids['attention_mask'])
+
+            return input_ids, attention_mask
+
+        def tokenize(self, sequence):
+            """
+            Tokenizes the input protein sequence.
+
+            Args:
+                sequence (str): The protein sequence to be tokenized.
+
+            Returns:
+                tokens (List[str]): List of tokens.
+            """
+            # 在氨基酸之间插入空格
+            sequence = " ".join(list(re.sub(r"[UZOB]", "X", sequence)))
+            return self.tokenizer.tokenize(sequence)
+
+        def convert_tokens_to_ids(self, tokens):
+            """
+            Converts a list of tokens into their corresponding token IDs.
+
+            Args:
+                tokens (List[str]): List of tokens to be converted.
+
+            Returns:
+                List[int]: List of token IDs.
+            """
+            return self.tokenizer.convert_tokens_to_ids(tokens)
 
 # 用于信号肽预测模型的分类标签映射列表
 # 为什么要分为6个部分，36又是哪来的？6个部分猜测是5种加none
@@ -171,7 +237,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         self.outputs_to_emissions = nn.Linear(
             config.hidden_size
             if self.use_kingdom_id is False
-            else config.hidden_size + config.kingdom_embed_size,
+            else config.hidden_size + config.kingdFom_embed_size,
             config.num_labels,
         )
 
@@ -260,7 +326,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             raise ValueError(
                 "You cannot specify both targets and targets_bitmap at the same time"
             )
-        print("BertSeqCRF的forward开始执行")
+        # print("BertSeqCRF的forward开始执行")
         ## Get LM hidden states
         # 获取语言模型的隐藏状态
         outputs = self.bert(
@@ -268,7 +334,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         )  # Returns tuple. pos 0 is sequence output, rest optional.
         # 这里取得的就是由碱基得到的那些序列，后面需要进一步的处理
         sequence_output = outputs[0]
-        print(f"After BERT - sequence_output shape: {sequence_output.shape}")
+        # print(f"After BERT - sequence_output shape: {sequence_output.shape}")
 
 
         ## Remove special tokens
@@ -278,8 +344,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         # )  # this takes care of CLS and SEP, pad-aware
         # print(f"After trim - sequence_output shape: {sequence_output.shape}")
         sequence_output, input_mask = self._trim_transformer_output(sequence_output, input_mask, False)
-        print(f"After trim - sequence_output shape: {sequence_output.shape}")
-        print(f"After trim - input_mask shape: {input_mask.shape}")
+        # print(f"After trim - sequence_output shape: {sequence_output.shape}")
+        # print(f"After trim - input_mask shape: {input_mask.shape}")
 
 
         # 去除界id，类别id，确保输入给CRF的比较简洁
@@ -289,11 +355,16 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         if self.type_id_as_token:
             sequence_output = sequence_output[:, 1:, :]
             input_mask = input_mask[:, 1:] if input_mask is not None else None
-        print(f"After removing tokens - sequence_output shape: {sequence_output.shape}")
+        # print(f"After removing tokens - sequence_output shape: {sequence_output.shape}")
 
         ## Trim transformer output to length of targets or to crf_input_length
         # 根据 targets 的长度或 crf_input_length 截断 transformer 输出
         # 这里的crf_input_length在init的时候被初始化为了70
+        print(f"Before truncation - sequence_output shape: {sequence_output.shape}")
+        print(f"Before truncation - input_mask shape: {input_mask.shape}")
+        # print(f"Before truncation - sequence_output content: {sequence_output}")
+        # print(f"Before truncation - input_mask content: {input_mask}")
+
         if targets is not None:
             sequence_output = sequence_output[
                 :, : targets.shape[1], :
@@ -309,10 +380,13 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
                 else None
             )
         print(f"After truncation - sequence_output shape: {sequence_output.shape}")
+        print(f"After truncation - input_mask shape: {input_mask.shape}")
+        # print(f"After truncation - sequence_output content: {sequence_output}")
+        # print(f"After truncation - input_mask content: {input_mask}")
 
         ## Apply dropouts
         sequence_output = self.lm_output_dropout(sequence_output)
-        print(f"After dropout - sequence_output shape: {sequence_output.shape}")
+        # print(f"After dropout - sequence_output shape: {sequence_output.shape}")
 
         ## Add kingdom ids
         if self.use_kingdom_id == True:
@@ -325,7 +399,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         ## CRF emissions
         # 序列转化为输入到CRF层的概率
         prediction_logits = self.outputs_to_emissions(sequence_output)
-        print(f"Prediction logits shape: {prediction_logits.shape}")
+        # print(f"Prediction logits shape: {prediction_logits.shape}")
 
         ## CRF
         # 根据是否有 targets，计算 CRF 层的对数似然
@@ -381,6 +455,10 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         # pad the viterbi paths
         max_pad_len = max([len(x) for x in viterbi_paths])
         pos_preds = [x + [-1] * (max_pad_len - len(x)) for x in viterbi_paths]
+        # pos_preds = [x + [-1] * (self.crf_input_length - len(x)) for x in viterbi_paths]
+        #
+        # # 确保所有序列的长度都等于 crf_input_length
+        # pos_preds = [x[:self.crf_input_length] for x in pos_preds]
         pos_preds = torch.tensor(
             pos_preds, device=probs.device
         )  # NOTE convert to tensor just for compatibility with the else case, so always returns same type
@@ -406,7 +484,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
                 global_loss = global_loss.mean()
 
             # losses = losses + global_loss
-        print(f"the value of targets is:{targets}")
+        # print(f"the value of targets is:{targets}")
         # 这部分代码导致多返回了一个值
         # if (
         #     targets is not None
@@ -422,8 +500,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
                 prediction_logits,
                 input_mask,
             )  # (batch_size, seq_len, num_labels)
-        print(f"return_emission的值为{return_emissions}，此时的outputs为:{outputs}")
-        print("BertSequenceTaggingCRF执行完毕，准备返回信息！")
+        # print(f"return_emission的值为{return_emissions}，此时的outputs为:{outputs}")
+        # print("BertSequenceTaggingCRF执行完毕，准备返回信息！")
 
         return outputs
 
@@ -436,15 +514,15 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         if remove_cls_sep:
             # Step 1: Remove CLS token
             hidden_states = hidden_states[:, 1:, :]
-            print(f"After removing CLS - hidden_states shape: {hidden_states.shape}")
+            # print(f"After removing CLS - hidden_states shape: {hidden_states.shape}")
 
             if input_mask is not None:
                 input_mask = input_mask[:, 1:]
-                print(f"After removing CLS - input_mask shape: {input_mask.shape}")
-                print(f"After removing CLS - input_mask content: {input_mask}")
+                # print(f"After removing CLS - input_mask shape: {input_mask.shape}")
+                # print(f"After removing CLS - input_mask content: {input_mask}")
 
                 true_seq_lens = input_mask.sum(dim=1) - 1  # -1 for SEP
-                print(f"True sequence lengths: {true_seq_lens}")
+                # print(f"True sequence lengths: {true_seq_lens}")
 
                 mask_list = []
                 output_list = []
@@ -452,9 +530,9 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
                 for i in range(input_mask.shape[0]):
                     mask_list.append(input_mask[i, : true_seq_lens[i]])
                     output_list.append(hidden_states[i, : true_seq_lens[i], :])
-                    print(
-                        f"After removing SEP - hidden_states[{i}] shape: {hidden_states[i, : true_seq_lens[i], :].shape}")
-                    print(f"After removing SEP - input_mask[{i}] shape: {input_mask[i, : true_seq_lens[i]].shape}")
+                    # print(
+                    #     f"After removing SEP - hidden_states[{i}] shape: {hidden_states[i, : true_seq_lens[i], :].shape}")
+                    # print(f"After removing SEP - input_mask[{i}] shape: {input_mask[i, : true_seq_lens[i]].shape}")
 
                 mask_out = torch.nn.utils.rnn.pad_sequence(mask_list, batch_first=True)
                 hidden_out = torch.nn.utils.rnn.pad_sequence(output_list, batch_first=True)
@@ -468,8 +546,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             mask_out = input_mask
 
 
-        print(f"Final hidden_out shape: {hidden_out.shape}")
-        print(f"Final mask_out shape: {mask_out.shape if mask_out is not None else 'None'}")
+        # print(f"Final hidden_out shape: {hidden_out.shape}")
+        # print(f"Final mask_out shape: {mask_out.shape if mask_out is not None else 'None'}")
 
 
         return hidden_out, mask_out,
@@ -583,3 +661,98 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         initial_states[preds == 5] = 31
 
         return initial_states
+
+class T5SequenceTaggingCRF(T5PreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+
+        # 由于不涉及到界，这部分可以不管
+        ## Set up kingdom ID embedding layer if used
+        self.use_kingdom_id = (
+            config.use_kingdom_id if hasattr(config, "use_kingdom_id") else False
+        )
+        # 创建嵌入层
+        if self.use_kingdom_id:
+            self.kingdom_embedding = nn.Embedding(4, config.kingdom_embed_size)
+
+        ## Set up LM and hidden state postprocessing
+        # 初始化T5模型
+        self.t5 = T5Model(config=config)
+        # 初始化LM输出的dropout层，用于正则化
+        self.lm_output_dropout = nn.Dropout(
+            config.lm_output_dropout if hasattr(config, "lm_output_dropout") else 0
+        )  # for backwards compatbility
+        self.lm_output_position_dropout = SequenceDropout(
+            config.lm_output_position_dropout
+            if hasattr(config, "lm_output_position_dropout")
+            else 0
+        )
+        self.kingdom_id_as_token = (
+            config.kingdom_id_as_token
+            if hasattr(config, "kingdom_id_as_token")
+            else False
+        )  # used for truncating hidden states
+        self.type_id_as_token = (
+            config.type_id_as_token if hasattr(config, "type_id_as_token") else False
+        )
+
+        # 设置CRF层的输入长度，这里的70是data目录下一众fasta的长度，目前的实现是在不能通过输入数据或标签来控制序列长度的情况下使用的硬编码值
+        # 不知道要不要修改，因为数据不是截成70，划分的话肯定会预测不准的
+        self.crf_input_length = 30
+        # TODO make this part of config if needed. Now it's for cases where I don't control that via input data or labels.
+
+        ## Hidden states to CRF emissions
+        self.outputs_to_emissions = nn.Linear(
+            config.hidden_size
+            if self.use_kingdom_id is False
+            else config.hidden_size + config.kingdFom_embed_size,
+            config.num_labels,
+        )
+
+        ## Set up CRF
+        self.num_global_labels = (
+            config.num_global_labels
+            if hasattr(config, "num_global_labels")
+            else config.num_labels
+        )
+        self.num_labels = config.num_labels
+        self.class_label_mapping = (
+            config.class_label_mapping
+            if hasattr(config, "class_label_mapping")
+            else SIGNALP6_CLASS_LABEL_MAP
+        )
+        assert (
+            len(self.class_label_mapping) == self.num_global_labels
+        ), "defined number of classes and class-label mapping do not agree."
+
+        self.allowed_crf_transitions = (
+            config.allowed_crf_transitions
+            if hasattr(config, "allowed_crf_transitions")
+            else None
+        )
+        self.allowed_crf_starts = (
+            config.allowed_crf_starts if hasattr(config, "allowed_crf_starts") else None
+        )
+        self.allowed_crf_ends = (
+            config.allowed_crf_ends if hasattr(config, "allowed_crf_ends") else None
+        )
+
+        self.crf = CRF(
+            num_tags=config.num_labels,
+            batch_first=True,
+            allowed_transitions=self.allowed_crf_transitions,
+            allowed_start=self.allowed_crf_starts,
+            allowed_end=self.allowed_crf_ends,
+        )
+        # Legacy, remove this once i completely retire non-mulitstate labeling
+        self.sp_region_tagging = (
+            config.use_region_labels if hasattr(config, "use_region_labels") else False
+        )  # use the right global prob aggregation function
+        self.use_large_crf = True  # legacy for get_metrics, no other use.
+
+        ## Loss scaling parameters
+        self.crf_scaling_factor = (
+            config.crf_scaling_factor if hasattr(config, "crf_scaling_factor") else 1
+        )
+
+        self.init_weights()

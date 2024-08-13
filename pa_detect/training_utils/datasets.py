@@ -431,7 +431,7 @@ class PhosphoicAcidThreeLineFastaDataset(Dataset):
             from tape import TAPETokenizer
 
             tokenizer = TAPETokenizer(vocab=tokenizer)
-            print(tokenizer.vocab)
+            # print(tokenizer.vocab)
         self.tokenizer = tokenizer
 
         # 初始化标签标记器，用于将标签转换为标记
@@ -478,9 +478,9 @@ class PhosphoicAcidThreeLineFastaDataset(Dataset):
             token_ids = self.tokenizer.tokenize(item)  # + [self.tokenizer.stop_token]
             token_ids = self.tokenizer.convert_tokens_to_ids(token_ids)
 
-            print("转化得到的token_id是这样的")
-            print(type(token_ids))
-            print(token_ids)
+            # print("转化得到的token_id是这样的")
+            # print(type(token_ids))
+            # print(token_ids)
 
         # 这里将label转化为id
         label_ids = self.label_tokenizer.sequence_to_token_ids(labels)
@@ -871,8 +871,8 @@ class LargeCRFPartitionDatasetPA(PartitionThreeLineFastaDatasetPA):
         item = self.sequences[index]
         labels = self.labels[index]
 
-        print(f"Item: {item}")
-        print(f"Labels: {labels}")
+        # print(f"Item: {item}")
+        # print(f"Labels: {labels}")
 
         # global_label = self.global_labels[index]
         weight = self.sample_weights[index] if hasattr(self, "sample_weights") else None
@@ -883,7 +883,7 @@ class LargeCRFPartitionDatasetPA(PartitionThreeLineFastaDatasetPA):
         )
 
         token_ids = [char for char in item]
-        print(f"Manually Tokenized Item: {token_ids}")
+        # print(f"Manually Tokenized Item: {token_ids}")
 
         if self.add_special_tokens == True:
             token_ids = self.tokenizer.encode(item, kingdom_id=self.kingdom_ids[index])
@@ -891,7 +891,7 @@ class LargeCRFPartitionDatasetPA(PartitionThreeLineFastaDatasetPA):
             # token_ids = self.tokenizer.tokenize(item)  # + [self.tokenizer.stop_token]
             # print(f"Tokenized Item: {token_ids}")
             token_ids = self.tokenizer.convert_tokens_to_ids(token_ids)
-            print(f"Token IDs: {token_ids}")
+            # print(f"Token IDs: {token_ids}")
 
         # 这里不清楚为什么要替换，暂先不替换
         # dependent on the global label, convert and tokenize labels
@@ -912,10 +912,10 @@ class LargeCRFPartitionDatasetPA(PartitionThreeLineFastaDatasetPA):
         # label_ids = self.label_tokenizer.convert_tokens_to_ids(converted_labels)
         # global_label_id = SIGNALP6_GLOBAL_LABEL_DICT[global_label]
         label_ids = self.label_tokenizer.sequence_to_token_ids(labels)
-        print(f"Label IDs: {label_ids}")
+        # print(f"Label IDs: {label_ids}")
 
         input_mask = np.ones_like(token_ids)
-        print(f"Input Mask: {input_mask}")
+        # print(f"Input Mask: {input_mask}")
 
         return_tuple = (
             np.array(token_ids),

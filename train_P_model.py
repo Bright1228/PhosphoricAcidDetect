@@ -11,6 +11,8 @@ import torch
 import torch.nn as nn
 from typing import Tuple, Dict, List
 from torch.utils.data import DataLoader, WeightedRandomSampler
+import pandas as pd
+from tqdm import tqdm
 
 from sklearn.metrics import (
     matthews_corrcoef,
@@ -18,6 +20,8 @@ from sklearn.metrics import (
     roc_auc_score,
     recall_score,
     precision_score,
+    f1_score,
+    balanced_accuracy_score, accuracy_score,
 )
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +47,38 @@ from pa_detect import (
 )
 
 
+def print_and_save(message, output_dir):
+    # 确保输出目录存在
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 定义结果文件路径
+    result_file_path = os.path.join(output_dir, "result.txt")
+
+    with open(result_file_path, 'a') as f:
+        f.write(message + '\n')
+
+# 这个函数用来保存validate的数据到一个csv文件中
+def save_validation_results(epoch, val_metrics, output_dir):
+    # 创建保存路径
+    file_path = os.path.join(output_dir, 'validate_data.csv')
+
+    # 检查文件是否存在
+    if not os.path.exists(file_path):
+        # 如果文件不存在，创建一个新的DataFrame并保存
+        df = pd.DataFrame(columns=['epoch'] + list(val_metrics.keys()))
+        df.to_csv(file_path, index=False)
+
+    # 读取现有的CSV文件
+    df = pd.read_csv(file_path)
+
+    # 添加新的验证结果
+    new_row = pd.DataFrame([{'epoch': epoch, **val_metrics}])
+    print(f"Appending new row: {new_row}")  # 调试信息
+    # df = df.append(new_row, ignore_index=True)
+    df = pd.concat([df, new_row], ignore_index=True)
+
+    # 保存更新后的CSV文件
+    df.to_csv(file_path, index=False)
 
 # 这边用wandb进行一些数据的记录
 # 如果移植服务器出现问题，把这部分删除掉
@@ -55,6 +91,25 @@ def log_metrics(metrics_dict, split: str, step: int):
         },
         step=step,
     )
+
+def log_metrics_ueslog(metrics_dict, split: str, step: int, logger):
+    """Convenience function to add prefix to all metrics before logging."""
+    for name, value in metrics_dict.items():
+        log_message = f"{split.capitalize()} {name.capitalize()}: {value} (Step: {step})"
+        logger.info(log_message)
+
+def log_all_targets(all_targets, logger):
+    """Log all_targets before and after concatenation."""
+    if all_targets is not None:
+        logger.info(f"All targets before concatenate: {all_targets}")
+        logger.info(f"Size before concatenate: {[target.size for target in all_targets]}")
+        try:
+            all_targets = np.concatenate(all_targets, axis=0)
+            logger.info(f"All targets after concatenate: {all_targets}")
+            logger.info(f"Size after concatenate: {all_targets.size}")
+        except Exception as e:
+            logger.error(f"Error during concatenation: {e}")
+
 
 
 # This is a quick fix for hyperparameter search.
@@ -309,14 +364,18 @@ def report_metrics_pa(
 ) -> Dict[str, float]:
     """Utility function to get metrics from model output"""
 
-    true_sequence_labels = true_sequence_labels.argmax(axis=1)
-    pred_sequence_labels = pred_sequence_labels.argmax(axis=1)
+    true_sequence_labels = true_sequence_labels.flatten()
+    pred_sequence_labels = pred_sequence_labels.flatten()
+    # print("report_matrics_pa函数正在执行！")
+    # print(f"true sequence label为：{true_sequence_labels}")
+    # print(f"pred_sequence_label为：{pred_sequence_labels}")
 
     # 计算评估指标
     metrics_dict = {}
-    metrics_dict["Recall"] = recall_score(true_sequence_labels, pred_sequence_labels, average="micro")
-    metrics_dict["Precision"] = precision_score(true_sequence_labels, pred_sequence_labels, average="micro")
+    metrics_dict["Recall"] = recall_score(true_sequence_labels, pred_sequence_labels, average="macro")
+    metrics_dict["Precision"] = precision_score(true_sequence_labels, pred_sequence_labels, average="macro")
     metrics_dict["MCC"] = matthews_corrcoef(true_sequence_labels, pred_sequence_labels)
+    metrics_dict["Accuracy"] = accuracy_score(true_sequence_labels, pred_sequence_labels)
 
     return metrics_dict
 
@@ -327,6 +386,7 @@ def train(
         optimizer: torch.optim.Optimizer,
         args: argparse.ArgumentParser,
         global_step: int,
+        logger
 ) -> Tuple[float, int]:
     """Predict one minibatch and performs update step.
         该函数预测一个小批量数据并执行更新步骤
@@ -362,7 +422,7 @@ def train(
     # 不添加即可，这个参数也不会被加入
     # 但是需要删除kingdom_ids与global_targets
     for i, batch in enumerate(train_data):
-        print(batch)
+        # print(batch)
         if args.sp_region_labels:
             (
                 data,
@@ -381,7 +441,7 @@ def train(
                 sample_weights,
             ) = batch
 
-        print(f"data的样式为{data}")
+        # print(f"data的样式为{data}")
         # 将数据和标签传递到指定的设备上
         data = data.to(device)
         targets = targets.to(device)
@@ -395,9 +455,9 @@ def train(
         # 如果使用 DataParallel，损失是一个向量，需要取平均值，累加总损失。
         optimizer.zero_grad()
 
-        print(f"data shape: {data.shape}")
-        print(f"targets shape: {targets.shape if targets is not None else 'None'}")
-        print(f"input_mask shape: {input_mask.shape}")
+        # print(f"data shape: {data.shape}")
+        # print(f"targets shape: {targets.shape if targets is not None else 'None'}")
+        # print(f"input_mask shape: {input_mask.shape}")
 
 
         # 向前传播的过程，这里需要删去global_probs,因为不得出这一结果
@@ -410,7 +470,7 @@ def train(
             sample_weights=sample_weights,
             kingdom_ids=kingdom_ids if args.kingdom_embed_size > 0 else None,
         )
-        print(f"赋值给loss, pos_probs, pos_preds返回内容是{out2}")
+        # print(f"赋值给loss, pos_probs, pos_preds返回内容是{out2}")
         loss, pos_probs, pos_preds = model(
             data,
             global_targets=None,
@@ -463,14 +523,23 @@ def train(
         # from IPython import embed; embed()
         optimizer.step()
 
-        log_metrics({"loss": loss.item()}, "train", global_step)
+        if args.use_wandb:
+            log_metrics({"loss": loss.item()}, "train", global_step)
+        log_metrics_ueslog({"loss": loss.item()}, split="train", step=global_step, logger=logger)
 
-        if args.optimizer == "smart_adamax":
-            log_metrics({"Learning rate": optimizer.get_lr()[0]}, "train", global_step)
+        if args.use_wandb:
+            if args.optimizer == "smart_adamax":
+                log_metrics({"Learning rate": optimizer.get_lr()[0]}, "train", global_step)
+            else:
+                log_metrics(
+                    {"Learning Rate": optimizer.param_groups[0]["lr"]}, "train", global_step
+                )
         else:
-            log_metrics(
-                {"Learning Rate": optimizer.param_groups[0]["lr"]}, "train", global_step
-            )
+            if args.optimizer == "smart_adamax":
+                log_metrics_ueslog({"Learning rate": optimizer.get_lr()[0]}, "train", step=global_step, logger=logger)
+            else:
+                log_metrics_ueslog({"Learning Rate": optimizer.param_groups[0]["lr"]}, "train", global_step, logger=logger)
+
         global_step += 1
 
     # 删除部分
@@ -514,7 +583,7 @@ def train(
     return total_loss / len(train_data), global_step
 
 
-def validate(model: torch.nn.Module, valid_data: DataLoader, args) -> float:
+def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> float:
     """Run over the validation data. Average loss over the full set."""
     # 用于在验证数据集上运行模型，并计算整个数据集的平均损失
     # 将模型设置为评估模式，关闭dropout等
@@ -554,11 +623,17 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args) -> float:
         all_pos_preds.append(pos_preds.detach().cpu().numpy())
         all_token_ids.append(data.detach().cpu().numpy())
 
+        # print("validate检测结果：")
+        # print(f"Batch {i}:")
+        # print(f"pos_probs: {pos_probs}")
+        # print(f"pos_preds: {pos_preds}")
+
     # all_targets = np.concatenate(all_targets)
     # all_probs = np.concatenate(all_probs)
     # all_pos_preds = np.concatenate(all_pos_preds)
     # all_token_ids = np.concatenate(all_token_ids)
     if all_targets:
+        log_all_targets(all_targets, logger=logger)
         all_targets = np.concatenate(all_targets, axis=0)
     if all_probs:
         all_probs = np.concatenate(all_probs)
@@ -573,7 +648,10 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args) -> float:
     #     all_pos_preds,
     #     args.use_cs_tag,
     # )
-
+    # print("validate函数执行中")
+    # print(f"all targets的值为：{all_targets}")
+    # print(f"all pos preds的值为：{all_pos_preds}")
+    # print(f"all pos probs的值为：{all_probs}")
     metrics = report_metrics_pa(all_targets, all_pos_preds)
 
     val_metrics = {"loss": total_loss / len(valid_data), **metrics}
@@ -582,18 +660,77 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args) -> float:
     # val_metrics = {"loss": val_loss}
     return val_loss, val_metrics
 
+def evaluate(model: torch.nn.Module, test_data: DataLoader, args) -> float:
+    """Evaluate the model on the test data. Calculate average accuracy over the full set."""
+    # 将模型设置为评估模式，关闭dropout等
+    model.eval()
+
+    all_targets = []
+    all_pos_preds = []
+    all_pos_probs = []
+    total_loss = 0
+    correct = 0
+    total = 0
+
+    for i, batch in enumerate(test_data):
+        data, targets, input_mask, sample_weights = batch
+
+        data = data.to(device)
+        targets = targets.to(device)
+        input_mask = input_mask.to(device)
+        sample_weights = sample_weights.to(device) if args.use_sample_weights else None
+
+        with torch.no_grad():
+            loss, pos_probs, pos_preds = model(
+                data,
+                targets=targets,
+                sample_weights=sample_weights,
+                input_mask=input_mask,
+            )
+
+        total_loss += loss.mean().item()
+        all_targets.append(targets.detach().cpu().numpy())
+        all_pos_preds.append(pos_preds.detach().cpu().numpy())
+        all_pos_probs.append(pos_probs.detach().cpu().numpy())
+
+    all_targets = np.concatenate(all_targets, axis=0)
+    all_pos_preds = np.concatenate(all_pos_preds, axis=0)
+
+
+    all_targets = np.concatenate(all_targets, axis=0).flatten()
+    all_pos_preds = np.concatenate(all_pos_preds, axis=0).flatten()
+
+    # 输出 all_targets 和 all_pos_preds 的内容
+    # print("evaluate函数正在执行！")
+    # print("All Targets:")
+    # print(all_targets)
+    # print("All Predictions:")
+    # print(all_pos_preds)
+
+    precision = precision_score(all_targets, all_pos_preds, average='macro')
+    recall = recall_score(all_targets, all_pos_preds, average='macro')
+    f1 = f1_score(all_targets, all_pos_preds, average='macro')
+    accuracy = accuracy_score(all_targets, all_pos_preds)
+    # balanced_acc = balanced_accuracy_score(all_targets, all_pos_preds)
+
+    # accuracy2 = correct / total
+    avg_loss = total_loss / len(test_data)
+
+    return avg_loss, precision, recall, f1, accuracy
+
 
 def main_training_loop(args: argparse.ArgumentParser):
 
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
 
+
     logger = setup_logger()
     f_handler = logging.FileHandler(os.path.join(args.output_dir, "log.txt"))
     formatter = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%y/%m/%d %H:%M:%S",
-    )
+     )
     f_handler.setFormatter(formatter)
 
     logger.addHandler(f_handler)
@@ -605,12 +742,13 @@ def main_training_loop(args: argparse.ArgumentParser):
     global wandb
     import wandb
 
-    if (
-        wandb.run is None and not args.crossval_run
-    ):  # Only initialize when there is no run yet (when importing main_training_loop to other scripts)
-        wandb.init(dir=args.output_dir, name=experiment_name)
-    else:
-        wandb = DecoyWandb()
+    if args.use_wandb:
+        if (
+            wandb.run is None and not args.crossval_run
+        ):  # Only initialize when there is no run yet (when importing main_training_loop to other scripts)
+            wandb.init(dir=args.output_dir, name=experiment_name)
+        else:
+            wandb = DecoyWandb()
 
     # Set seed
     if args.random_seed is not None:
@@ -620,8 +758,8 @@ def main_training_loop(args: argparse.ArgumentParser):
         seed = torch.seed()
 
     logger.info(f"torch seed: {seed}")
-    wandb.config.update({"seed": seed})
-
+    if args.use_wandb:
+        wandb.config.update({"seed": seed})
     logger.info(f"Saving to {args.output_dir}")
 
     # Setup Model
@@ -804,7 +942,8 @@ def main_training_loop(args: argparse.ArgumentParser):
         args.resume, config=config
     )
     tokenizer = TOKENIZER_DICT[args.model_architecture][0].from_pretrained(
-        TOKENIZER_DICT[args.model_architecture][1], do_lower_case=False
+        # TOKENIZER_DICT[args.model_architecture][1], do_lower_case=False
+        args.resume, do_lower_case=False
     )
     logger.info(
         f"Loaded weights from {args.resume} for model {model.base_model_prefix}"
@@ -856,6 +995,18 @@ def main_training_loop(args: argparse.ArgumentParser):
             make_cs_state=args.use_cs_tag,
             add_global_label=args.global_label_as_input,
         )
+        test_data = RegionCRFDataset(
+            args.data,
+            args.sample_weights,
+            tokenizer=tokenizer,
+            partition_id=[test_id],
+            kingdom_id=kingdoms,
+            add_special_tokens=True,
+            return_kingdom_ids=True,
+            positive_samples_weight=args.positive_samples_weight,
+            make_cs_state=args.use_cs_tag,
+            add_global_label=args.global_label_as_input,
+        )
         logger.info("Using labels for SP region prediction.")
     else:
         # data_path: Union[str, Path],
@@ -889,6 +1040,17 @@ def main_training_loop(args: argparse.ArgumentParser):
             positive_samples_weight=args.positive_samples_weight,
             make_cs_state=args.use_cs_tag,
         )
+        test_data = LargeCRFPartitionDatasetPA(
+            args.data,
+            args.sample_weights,
+            tokenizer=tokenizer,
+            partition_id=[test_id],
+            add_special_tokens=False,
+            return_kingdom_ids=False,
+            positive_samples_weight=args.positive_samples_weight,
+            make_cs_state=args.use_cs_tag,
+        )
+
     logger.info(
         f"{len(train_data)} training sequences, {len(val_data)} validation sequences."
     )
@@ -898,9 +1060,13 @@ def main_training_loop(args: argparse.ArgumentParser):
         batch_size=args.batch_size,
         collate_fn=train_data.collate_fn,
         shuffle=True,
+        pin_memory=True
     )
     val_loader = DataLoader(
-        val_data, batch_size=args.batch_size, collate_fn=train_data.collate_fn
+        val_data, batch_size=args.batch_size, collate_fn=train_data.collate_fn, pin_memory=True
+    )
+    test_loader = DataLoader(
+        test_data, batch_size=args.batch_size, collate_fn=train_data.collate_fn, pin_memory=True
     )
 
     # use sample weights to load random samples as minibatches according to weights,不需要添加
@@ -931,9 +1097,10 @@ def main_training_loop(args: argparse.ArgumentParser):
     logger.info(f"Data loaded. One epoch = {len(train_loader)} batches.")
 
     # set up wandb logging, login and project id from commandline vars
-    wandb.config.update(args)
-    wandb.config.update({"git commit ID": GIT_HASH})
-    wandb.config.update(model.config.to_dict())
+    if args.use_wandb:
+        wandb.config.update(args)
+        wandb.config.update({"git commit ID": GIT_HASH})
+        wandb.config.update(model.config.to_dict())
     # TODO uncomment as soon as w&b fixes the bug on their end.
     # wandb.watch(model)
     logger.info(f"Logging experiment as {experiment_name} to wandb/tensorboard")
@@ -980,19 +1147,22 @@ def main_training_loop(args: argparse.ArgumentParser):
     best_mcc_sum = 0
     best_mcc_global = 0
     best_mcc_cs = 0
+    best_precision = 0
 
     best_model_path = None  # 用于存储最佳模型的路径
 
-    for epoch in range(1, args.epochs + 1):
+    for epoch in tqdm(range(1, args.epochs + 1)):
         logger.info(f"Starting epoch {epoch}")
 
-        outputs = train(
-            model, train_loader, optimizer, args, global_step
-        )
-        print(f"赋值给epoch_loss, global_step调用的train语句返回的内容为：{outputs}")
+        # outputs = train(
+        #     model, train_loader, optimizer, args, global_step
+        # )
+        # print(f"赋值给epoch_loss, global_step调用的train语句返回的内容为：{outputs}")
         epoch_loss, global_step = train(
-            model, train_loader, optimizer, args, global_step
+            model, train_loader, optimizer, args, global_step, logger
         )
+        val_loss, val_metrics = validate(model, val_loader, args=args, logger=logger)
+        save_validation_results(epoch, val_metrics, args.output_dir)
 
     #     logger.info(
     #         f"Step {global_step}, Epoch {epoch}: validating for {len(val_loader)} Validation steps"
@@ -1088,8 +1258,30 @@ def main_training_loop(args: argparse.ArgumentParser):
     logger.info(
         f"Step {global_step}, Epoch {epoch}: validating for {len(val_loader)} Validation steps"
     )
-    val_loss, val_metrics = validate(model, val_loader, args)
-    log_metrics(val_metrics, "val", global_step)
+    val_loss, val_metrics = validate(model, val_loader, args=args, logger=logger)
+    if args.use_wandb:
+        log_metrics(val_metrics, "val", global_step)
+    log_metrics_ueslog(val_metrics,"val", global_step, logger)
+    # save_validation_results(epoch, val_metrics, args.output_dir)
+
+    avg_loss, precision, recall, f1, accuracy = evaluate(model, test_loader, args)
+    print(f"Test Loss: {avg_loss:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall: {recall:.4f}")
+    print(f"F1 Score: {f1:.4f}")
+    print(f"Accuracy: {accuracy:.4f}")
+    if args.write_validate_to_log:
+        print_and_save(f"Test Loss: {avg_loss:.4f}", args.output_dir)
+        print_and_save(f"Precision: {precision:.4f}", args.output_dir)
+        print_and_save(f"Recall: {recall:.4f}", args.output_dir)
+        print_and_save(f"F1 Score: {f1:.4f}", args.output_dir)
+        print_and_save(f"Accuracy: {accuracy:.4f}", args.output_dir)
+
+    logger.info(f"Test Loss: {avg_loss:.4f}")
+    logger.info(f"Precision: {precision:.4f}")
+    logger.info(f"Recall: {recall:.4f}")
+    logger.info(f"F1 Score: {f1:.4f}")
+    logger.info(f"Accuracy: {accuracy:.4f}")
 
     # 获取评估指标
     recall = val_metrics.get("Recall", 0)
@@ -1102,10 +1294,13 @@ def main_training_loop(args: argparse.ArgumentParser):
 
     # 计算 MCC 总和
     mcc_sum = mcc  # 这里假设只有一个 MCC 指标
-    log_metrics({"MCC Sum": mcc_sum}, "val", global_step)
+    if args.use_wandb:
+        log_metrics({"MCC Sum": mcc_sum}, "val", global_step)
+    log_metrics_ueslog({"MCC Sum": mcc_sum}, "val", global_step, logger=logger)
 
-    if mcc_sum > best_mcc_sum:
-        best_mcc_sum = mcc_sum
+    if mcc_sum > best_mcc_sum or precision > best_precision:
+        best_mcc_sum = max(mcc_sum, best_mcc_sum)
+        best_precision = max(precision, best_precision)
         best_mcc_global = mcc  # 假设只有一个 MCC 指标
         num_epochs_no_improvement = 0
 
@@ -1133,22 +1328,36 @@ def main_training_loop(args: argparse.ArgumentParser):
         best_model_state_dict = model.state_dict()
         logger.info(f'Saving final model to {best_model_path}')
 
-    # 保存最佳模型
-    torch.save(best_model_state_dict, best_model_path)
-    model.save_pretrained(args.output_dir)
-    logger.info(f'Saving best model to {best_model_path} and {args.output_dir}')
+        # if args.save_model:
+        #     # 保存最佳模型
+    # torch.save(best_model_state_dict, best_model_path)
+    # model.save_pretrained(args.output_dir)
+    # logger.info(f'Saving best model to {best_model_path} and {args.output_dir}')
+    # print(f'Saving best model to {best_model_path} and {args.output_dir}')
+
+
 
     logger.info(f"Epoch {epoch}, epoch limit reached. Training complete")
     logger.info(
         f"Best: MCC Sum {best_mcc_sum}, Detection {best_mcc_global}"
     )
-    log_metrics(
+    if args.use_wandb:
+        log_metrics(
+            {
+                "Best MCC Detection": best_mcc_global,
+                "Best MCC sum": best_mcc_sum,
+            },
+            "val",
+            global_step,
+        )
+    log_metrics_ueslog(
         {
             "Best MCC Detection": best_mcc_global,
             "Best MCC sum": best_mcc_sum,
         },
         "val",
         global_step,
+        logger
     )
 
     run_completed = True
@@ -1340,6 +1549,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Constrain the transitions of the region-tagging CRF.",
     )
+    parser.add_argument(
+        '--save_model', action='store_true', help='Specify this flag to save the model'
+    )
+    parser.add_argument(
+        '--write_validate_to_log', action='store_true', help='Write precision, accuracy, f1 and recall to a txt'
+    )
+    parser.add_argument(
+        '--use_wandb',
+        type=bool,
+        default=False,
+        help='Use wandb to log information, in case of bad net condition'
+    )
+
+
 
     args = parser.parse_args()
 

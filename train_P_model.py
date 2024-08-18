@@ -582,6 +582,12 @@ def train(
 
     return total_loss / len(train_data), global_step
 
+ # 填充 all_targets 中的每个数组到指定长度
+def pad_array(arr, target_length, pad_value=-1):
+    if arr.shape[1] < target_length:
+        padding = np.full((arr.shape[0], target_length - arr.shape[1]), pad_value)
+        arr = np.hstack((arr, padding))
+    return arr
 
 def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> float:
     """Run over the validation data. Average loss over the full set."""
@@ -623,7 +629,10 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> fl
         all_pos_preds.append(pos_preds.detach().cpu().numpy())
         all_token_ids.append(data.detach().cpu().numpy())
 
-        # print("validate检测结果：")
+    fixed_length = 50
+    all_targets = [pad_array(arr, fixed_length) for arr in all_targets]
+
+    # print("validate检测结果：")
         # print(f"Batch {i}:")
         # print(f"pos_probs: {pos_probs}")
         # print(f"pos_preds: {pos_preds}")
@@ -639,8 +648,8 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> fl
         all_probs = np.concatenate(all_probs)
     if all_pos_preds:
         all_pos_preds = np.concatenate(all_pos_preds,axis=0)
-    if all_token_ids:
-        all_token_ids = np.concatenate(all_token_ids)
+    # if all_token_ids:
+    #     all_token_ids = np.concatenate(all_token_ids)
 
     # metrics = report_metrics(
     #     all_targets,
@@ -692,6 +701,9 @@ def evaluate(model: torch.nn.Module, test_data: DataLoader, args) -> float:
         all_targets.append(targets.detach().cpu().numpy())
         all_pos_preds.append(pos_preds.detach().cpu().numpy())
         all_pos_probs.append(pos_probs.detach().cpu().numpy())
+
+    fixed_length = 50
+    all_targets = [pad_array(arr, fixed_length) for arr in all_targets]
 
     all_targets = np.concatenate(all_targets, axis=0)
     all_pos_preds = np.concatenate(all_pos_preds, axis=0)

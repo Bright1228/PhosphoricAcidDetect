@@ -47,6 +47,7 @@ PHOSPHO_GLOBAL_LABEL_DICT = {
     "PHOSPHORYLATED": 1,    # 磷酸化的全局标签
 }
 def pad_sequences(sequences: Sequence, constant_value=0, dtype=None) -> np.ndarray:
+    print("执行了函数pad sequences!")
     batch_size = len(sequences)
     shape = [batch_size] + np.max([seq.shape for seq in sequences], 0).tolist()
 

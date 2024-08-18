@@ -25,7 +25,7 @@ class SequenceDropout(nn.Module):
         # 没有训练或者概率设0，则不执行
         if not self.training or self.dropout == 0:
             return x
-        # print("SeqDropout的forward开始执行")
+        print("SeqDropout的forward开始执行")
 
         # 如果输入x的格式不是batch_first（即第一个维度不是批量大小），则交换第一维和第二维
         if not self.batch_first:
@@ -40,7 +40,7 @@ class SequenceDropout(nn.Module):
         after_dropout = mask_expanded * x
         if not self.batch_first:
             after_dropout = after_dropout.transpose(0, 1)
-        # print("SequenceDropout执行完毕，准备返回信息！")
+        print("SequenceDropout执行完毕，准备返回信息！")
 
         return after_dropout
 
@@ -161,6 +161,11 @@ class ProteinT5Tokenizer:
             """
             return self.tokenizer.convert_tokens_to_ids(tokens)
 
+        @classmethod
+        def from_pretrained(cls, checkpoint, **kwargs):
+            return cls(checkpoint, **kwargs)
+        # 用于创建类的实例，checkpoint可以指向预训练的模型或者路径
+
 # 用于信号肽预测模型的分类标签映射列表
 # 为什么要分为6个部分，36又是哪来的？6个部分猜测是5种加none
 SIGNALP6_CLASS_LABEL_MAP = [
@@ -230,7 +235,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
 
         # 设置CRF层的输入长度，这里的70是data目录下一众fasta的长度，目前的实现是在不能通过输入数据或标签来控制序列长度的情况下使用的硬编码值
         # 不知道要不要修改，因为数据不是截成70，划分的话肯定会预测不准的
-        self.crf_input_length = 30
+        self.crf_input_length = 50
         # TODO make this part of config if needed. Now it's for cases where I don't control that via input data or labels.
 
         ## Hidden states to CRF emissions
@@ -429,6 +434,9 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         probs = self.crf.compute_marginal_probabilities(
             emissions=prediction_logits, mask=input_mask.byte()
         )
+        # print(f"type of probs:{type(probs)}")
+        # print(f"size of probs:{probs.size()}")
+        # print(f"content of probs:{probs}")
 
         # 根据是否使用 sp_region_tagging 计算全局标签概率
         if self.sp_region_tagging:
@@ -453,8 +461,12 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         )
 
         # pad the viterbi paths
-        max_pad_len = max([len(x) for x in viterbi_paths])
+        print("before执行pad the viterbi paths")
+        print(f"viterbi_path的值为：{viterbi_paths}")
+        # max_pad_len = max([len(x) for x in viterbi_paths])
+        max_pad_len = self.crf_input_length
         pos_preds = [x + [-1] * (max_pad_len - len(x)) for x in viterbi_paths]
+        print(f"max_pad_len:{max_pad_len},pos_preds:{pos_preds}")
         # pos_preds = [x + [-1] * (self.crf_input_length - len(x)) for x in viterbi_paths]
         #
         # # 确保所有序列的长度都等于 crf_input_length

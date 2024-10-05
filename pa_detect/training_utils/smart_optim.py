@@ -5,6 +5,7 @@ import math
 import torch
 from torch.optim import Optimizer
 from torch.nn.utils import clip_grad_norm_
+import numpy as np
 
 # from pytorch_pretrained_bert.optimization import warmup_constant, warmup_cosine, warmup_linear
 from torch.nn.modules.loss import _Loss
@@ -24,7 +25,65 @@ def warmup_linear_xdl(x, warmup=0.002):
     return (1.0 - x) / (1.0 - warmup)
 
 
+# def schedule_func(sch):
+#     try:
+#         f = eval(sch)
+#     except:
+#         f = warmup_linear
+#     return f
+
+import numpy as np
+
+def inverted_triangular_lr(step, total, warmup=0.002, max_lr=3e-4, min_lr=1e-5):
+    """
+    倒三角学习率调度器，从较大的 max_lr 开始，逐渐减少到较小的 min_lr。
+    """
+    if step < warmup * total:
+        # Warmup阶段，线性增长到max_lr
+        return (max_lr / (warmup * total)) * step
+    else:
+        # 倒三角部分，逐渐从max_lr减小到min_lr
+        # 计算线性递减的部分，step超过warmup后的变化
+        slope = (max_lr - min_lr) / (total - warmup * total)
+        lr = max_lr - slope * (step - warmup * total)
+        return max(lr, min_lr)  # 确保 lr 不低于 min_lr
+
+def slanted_triangular_lr(step, total, increase_factor=1.5):
+    """
+    倒三角学习率调度器，返回一个介于0.5到1.0之间的系数。
+    """
+    if step < total / 2:
+        # 前半段线性递减
+        return 1.0 - (0.5 * (step / (total / 2)))
+    else:
+        # 后半段线性递增，加快递增速度，并限制最大值为1.0
+        lr = 0.5 + (0.5 * increase_factor * ((step - (total / 2)) / (total / 2)))
+        return min(lr, 1.0)  # 确保不超过1.0
+
+
+
+
+
+def cosine_annealing_with_warmup(step, total, warmup=0.002, max_lr=3e-4, min_lr=1e-5):
+    """
+    余弦退火学习率调度器，带有 warmup 的阶段，从 max_lr 减少到 min_lr。
+    """
+    if step < warmup * total:
+        # Warmup阶段，线性增长到max_lr
+        return (max_lr / (warmup * total)) * step
+    else:
+        # 余弦退火阶段，从max_lr逐渐递减到min_lr
+        cos_inner = np.pi * (step - warmup * total) / (total - warmup * total)
+        lr = min_lr + 0.5 * (max_lr - min_lr) * (1 + np.cos(cos_inner))
+        return max(lr, min_lr)  # 确保 lr 不低于 min_lr
+
+
+# 可以选择两种优化学习率的办法，倒三角与余弦退火
 def schedule_func(sch):
+    if sch == "slanted_triangular":
+        return slanted_triangular_lr
+    elif sch == "cosine_annealing":
+        return cosine_annealing_with_warmup
     try:
         f = eval(sch)
     except:

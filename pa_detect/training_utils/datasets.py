@@ -47,7 +47,7 @@ PHOSPHO_GLOBAL_LABEL_DICT = {
     "PHOSPHORYLATED": 1,    # 磷酸化的全局标签
 }
 def pad_sequences(sequences: Sequence, constant_value=0, dtype=None) -> np.ndarray:
-    print("执行了函数pad sequences!")
+    # print("执行了函数pad sequences!")
     batch_size = len(sequences)
     shape = [batch_size] + np.max([seq.shape for seq in sequences], 0).tolist()
 
@@ -450,6 +450,10 @@ class PhosphoicAcidThreeLineFastaDataset(Dataset):
         # >P35583|EUKARYA|NO_SP|0，显然其第二部分是no_sp
         # 磷酸化检测不需要这样步，也就是说不需要判断类型，这一行不需要
         # self.global_labels = [x.split("|")[2] for x in self.identifiers]
+        # if self.use_sample_weights:
+        #     self.sample_weights = [10 if '1' in label else 1 for label in self.labels]
+        # else:
+        #     self.sample_weights = [1 for _ in self.labels]
 
     def __len__(self) -> int:
          return len(self.sequences)
@@ -544,6 +548,16 @@ class PhosphoicAcidThreeLineFastaDataset(Dataset):
         # 理论上应该返回一个字典，这里尝试一下
         # return return_dict
 
+def calculate_sample_weights(labels):
+    sample_weights = []
+    for label in labels:
+        label_list = [int(char) for char in label]
+        count_of_ones = sum(label_list)
+        weight = 1.0
+        for _ in range(count_of_ones):
+            weight *= 2
+        sample_weights.append(weight)
+    return sample_weights
 # 这个类可以形成分组，删除掉针对kingdom等的处理
 class PartitionThreeLineFastaDatasetPA(PhosphoicAcidThreeLineFastaDataset):
     def __init__(
@@ -604,9 +618,13 @@ class PartitionThreeLineFastaDatasetPA(PhosphoicAcidThreeLineFastaDataset):
         # NOTE this is just to make the training script more adaptable without having to change batch handling everytime. Always make weights,
         # decide in training script whether or not to use
         else:
-            # 不是作为globa_labels来进行，而是给整个第一行添加权重
-            # self.sample_weights = [1 for label in self.global_labels]
-            self.sample_weights = [1 for _ in self.identifiers]
+            self.sample_weights = [10 if '1' in label else 0 if '-1' in label else 1 for label in self.labels]
+            # print(f"我在调试数据集！现在self.labels为：{self.labels}")
+            # self.sample_weights = calculate_sample_weights(self.labels)
+            # print(f"现在权重是：{self.sample_weights}")
+
+
+
 
 # 这个类相当于进行特殊处理，比如界、全局标签等，我删除了这些东西，暂不处理
 class PartitionThreeLineFastaDataset(ThreeLineFastaDataset):

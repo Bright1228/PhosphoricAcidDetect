@@ -5,6 +5,7 @@ import math
 import torch
 from torch.optim import Optimizer
 from torch.nn.utils import clip_grad_norm_
+import numpy as np
 
 # from pytorch_pretrained_bert.optimization import warmup_constant, warmup_cosine, warmup_linear
 from torch.nn.modules.loss import _Loss
@@ -24,7 +25,37 @@ def warmup_linear_xdl(x, warmup=0.002):
     return (1.0 - x) / (1.0 - warmup)
 
 
+# def schedule_func(sch):
+#     try:
+#         f = eval(sch)
+#     except:
+#         f = warmup_linear
+#     return f
+
+def slanted_triangular_lr(step, total, warmup=0.002, max_lr=3e-5):
+    if step < warmup * total:
+        return (max_lr / (warmup * total)) * step
+    else:
+        cycle = np.floor(1 + (step - warmup * total) / (2 * (total - warmup * total)))
+        x = np.abs((step - warmup * total) / (total - warmup * total) - 2 * cycle + 1)
+        lr = max_lr * np.maximum(0, (1 - x))
+        return lr
+
+def cosine_annealing_with_warmup(step, total, warmup=0.002, max_lr=3e-5, min_lr=1e-6):
+    if step < warmup * total:
+        # 预热阶段
+        return (max_lr / (warmup * total)) * step
+    else:
+        # Cosine Annealing 阶段
+        cos_inner = np.pi * (step - warmup * total) / (total - warmup * total)
+        return min_lr + 0.5 * (max_lr - min_lr) * (1 + np.cos(cos_inner))
+
+# 可以选择两种优化学习率的办法，倒三角与余弦退火
 def schedule_func(sch):
+    if sch == "slanted_triangular":
+        return slanted_triangular_lr
+    elif sch == "cosine_annealing":
+        return cosine_annealing_with_warmup
     try:
         f = eval(sch)
     except:

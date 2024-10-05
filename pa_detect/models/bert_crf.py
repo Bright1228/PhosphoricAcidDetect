@@ -9,6 +9,42 @@ from transformers import T5Model, T5PreTrainedModel, T5Tokenizer
 import re
 
 
+def mask_targets_and_logits(targets, prediction_logits, mask_value=-1):
+    """
+    逐个处理每个序列，删除 targets 中的 mask_value，并相应地调整 prediction_logits。
+
+    参数:
+    - targets: 形状为 (batch_size, seq_length) 的张量，包含目标标签。
+    - prediction_logits: 形状为 (batch_size, seq_length, num_tags) 的张量，包含预测的发射分数。
+    - mask_value: 要删除的掩码值，默认为 -1。
+
+    返回:
+    - masked_targets: 删除 mask_value 后的 targets，形状为 (batch_size, new_seq_length)。
+    - masked_prediction_logits: 相应调整后的 prediction_logits，形状为 (batch_size, new_seq_length, num_tags)。
+    """
+    batch_size, seq_length, num_tags = prediction_logits.size()
+
+    masked_targets = []
+    masked_prediction_logits = []
+
+    for i in range(batch_size):
+        # 获取当前序列的 targets 和 prediction_logits
+        current_targets = targets[i]
+        current_logits = prediction_logits[i]
+
+        # 找到非 mask_value 的位置
+        valid_indices = current_targets != mask_value
+
+        # 删除 mask_value 后的 targets 和相应的 prediction_logits
+        masked_targets.append(current_targets[valid_indices])
+        masked_prediction_logits.append(current_logits[valid_indices])
+
+    # 将结果转换为张量
+    masked_targets = torch.stack(masked_targets)
+    masked_prediction_logits = torch.stack(masked_prediction_logits)
+
+    return masked_targets, masked_prediction_logits
+
 class SequenceDropout(nn.Module):
     """Layer zeroes full hidden states in a sequence of hidden states"""
     # 这个类用于在训练过程中随机将输入序列的一部分隐藏状态置零，即序列Dropout,以此来防止模型对训练数据过拟合。
@@ -25,7 +61,7 @@ class SequenceDropout(nn.Module):
         # 没有训练或者概率设0，则不执行
         if not self.training or self.dropout == 0:
             return x
-        print("SeqDropout的forward开始执行")
+        # print("SeqDropout的forward开始执行")
 
         # 如果输入x的格式不是batch_first（即第一个维度不是批量大小），则交换第一维和第二维
         if not self.batch_first:
@@ -40,7 +76,7 @@ class SequenceDropout(nn.Module):
         after_dropout = mask_expanded * x
         if not self.batch_first:
             after_dropout = after_dropout.transpose(0, 1)
-        print("SequenceDropout执行完毕，准备返回信息！")
+        # print("SequenceDropout执行完毕，准备返回信息！")
 
         return after_dropout
 
@@ -235,7 +271,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
 
         # 设置CRF层的输入长度，这里的70是data目录下一众fasta的长度，目前的实现是在不能通过输入数据或标签来控制序列长度的情况下使用的硬编码值
         # 不知道要不要修改，因为数据不是截成70，划分的话肯定会预测不准的
-        self.crf_input_length = 50
+        self.crf_input_length = 100
         # TODO make this part of config if needed. Now it's for cases where I don't control that via input data or labels.
 
         ## Hidden states to CRF emissions
@@ -245,6 +281,7 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
             else config.hidden_size + config.kingdFom_embed_size,
             config.num_labels,
         )
+
 
         ## Set up CRF
         self.num_global_labels = (
@@ -365,8 +402,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         ## Trim transformer output to length of targets or to crf_input_length
         # 根据 targets 的长度或 crf_input_length 截断 transformer 输出
         # 这里的crf_input_length在init的时候被初始化为了70
-        print(f"Before truncation - sequence_output shape: {sequence_output.shape}")
-        print(f"Before truncation - input_mask shape: {input_mask.shape}")
+        # print(f"Before truncation - sequence_output shape: {sequence_output.shape}")
+        # print(f"Before truncation - input_mask shape: {input_mask.shape}")
         # print(f"Before truncation - sequence_output content: {sequence_output}")
         # print(f"Before truncation - input_mask content: {input_mask}")
 
@@ -384,8 +421,8 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
                 if input_mask is not None
                 else None
             )
-        print(f"After truncation - sequence_output shape: {sequence_output.shape}")
-        print(f"After truncation - input_mask shape: {input_mask.shape}")
+        # print(f"After truncation - sequence_output shape: {sequence_output.shape}")
+        # print(f"After truncation - input_mask shape: {input_mask.shape}")
         # print(f"After truncation - sequence_output content: {sequence_output}")
         # print(f"After truncation - input_mask content: {input_mask}")
 
@@ -409,6 +446,13 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         ## CRF
         # 根据是否有 targets，计算 CRF 层的对数似然
         if targets is not None:
+            # masked_targets, masked_prediction_logits = mask_targets_and_logits(targets, prediction_logits)
+            # print("原始 targets 形状:", targets.shape)
+            # print("掩码后 targets 形状:", masked_targets.shape)
+            # print("原始 prediction_logits 形状:", prediction_logits.shape)
+            # print("掩码后 prediction_logits 形状:", masked_prediction_logits.shape)
+
+
             log_likelihood = self.crf(
                 emissions=prediction_logits,
                 tags=targets,
@@ -461,12 +505,12 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         )
 
         # pad the viterbi paths
-        print("before执行pad the viterbi paths")
-        print(f"viterbi_path的值为：{viterbi_paths}")
+        # print("before执行pad the viterbi paths")
+        # print(f"viterbi_path的值为：{viterbi_paths}")
         # max_pad_len = max([len(x) for x in viterbi_paths])
         max_pad_len = self.crf_input_length
         pos_preds = [x + [-1] * (max_pad_len - len(x)) for x in viterbi_paths]
-        print(f"max_pad_len:{max_pad_len},pos_preds:{pos_preds}")
+        # print(f"max_pad_len:{max_pad_len},pos_preds:{pos_preds}")
         # pos_preds = [x + [-1] * (self.crf_input_length - len(x)) for x in viterbi_paths]
         #
         # # 确保所有序列的长度都等于 crf_input_length
@@ -474,9 +518,10 @@ class BertSequenceTaggingCRF(BertPreTrainedModel):
         pos_preds = torch.tensor(
             pos_preds, device=probs.device
         )  # NOTE convert to tensor just for compatibility with the else case, so always returns same type
-
+        padded_probs = torch.nn.functional.pad(probs, (0, 0, 0, max_pad_len - probs.size(1)), value=-1)
         # outputs = (global_probs, probs, pos_preds)  # + outputs
-        outputs = (neg_log_likelihood, probs, pos_preds)
+        outputs = (neg_log_likelihood, padded_probs, pos_preds, prediction_logits)
+        # print(f"调试信息,打印prediction_logits：{prediction_logits}")
 
         # get the losses
         losses = neg_log_likelihood

@@ -40,7 +40,7 @@ from signalp6.utils import class_aware_cosine_similarities, get_region_lengths
 
 # import data
 import os
-import wandb
+# import wandb
 
 from sklearn.metrics import (
     matthews_corrcoef,
@@ -50,16 +50,52 @@ from sklearn.metrics import (
     precision_score,
 )
 
+from tqdm import tqdm
 
-def log_metrics(metrics_dict, split: str, step: int):
+# 这里定义了log相关信息，为的是不使用wandb
+# 配置日志记录
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def log_metrics_local(metrics_dict, split: str, step: int):
     """Convenience function to add prefix to all metrics before logging."""
-    wandb.log(
-        {
-            f"{split.capitalize()} {name.capitalize()}": value
-            for name, value in metrics_dict.items()
-        },
-        step=step,
-    )
+    for name, value in metrics_dict.items():
+        logger.info(f"{split.capitalize()} {name.capitalize()}: {value} (Step: {step})")
+
+# 伪wandb类，用于替代实际的wandb库
+class DecoyConfigLocal:
+    def update(*args, **kwargs):
+        pass
+
+class DecoyWandbLocal:
+    config = DecoyConfigLocal()
+
+    def init(self, *args, **kwargs):
+        logger.info("Decoy Wandb initiated, override wandb with no-op logging to prevent errors.")
+        pass
+
+    def log(self, value_dict, *args, **kwargs):
+        # 过滤训练日志，不想在每一步都打印
+        if list(value_dict.keys())[0].startswith("Train"):
+            pass
+        else:
+            logger.info(value_dict)
+            logger.info(args)
+            logger.info(kwargs)
+
+    def watch(self, *args, **kwargs):
+        pass
+
+# 这些是wandb相关的信息，在训练过程中不使用
+# def log_metrics(metrics_dict, split: str, step: int):
+#     """Convenience function to add prefix to all metrics before logging."""
+#     wandb.log(
+#         {
+#             f"{split.capitalize()} {name.capitalize()}": value
+#             for name, value in metrics_dict.items()
+#         },
+#         step=step,
+#     )
 
 
 # This is a quick fix for hyperparameter search.
@@ -373,7 +409,15 @@ def train(
             )
             loss = loss + nh.mean() * args.region_regularization_alpha
             loss = loss + hc.mean() * args.region_regularization_alpha
-            log_metrics(
+            # log_metrics(
+            #     {
+            #         "n-h regularization": nh.mean().detach().cpu().numpy(),
+            #         "h-c regularization": hc.mean().detach().cpu().numpy(),
+            #     },
+            #     "train",
+            #     global_step,
+            # )
+            log_metrics_local(
                 {
                     "n-h regularization": nh.mean().detach().cpu().numpy(),
                     "h-c regularization": hc.mean().detach().cpu().numpy(),
@@ -391,14 +435,17 @@ def train(
         # from IPython import embed; embed()
         optimizer.step()
 
-        log_metrics({"loss": loss.item()}, "train", global_step)
+        # log_metrics({"loss": loss.item()}, "train", global_step)
+        log_metrics_local({"loss": loss.item()}, "train", global_step)
 
         if args.optimizer == "smart_adamax":
-            log_metrics({"Learning rate": optimizer.get_lr()[0]}, "train", global_step)
+            # log_metrics({"Learning rate": optimizer.get_lr()[0]}, "train", global_step)
+            log_metrics_local({"Learning rate": optimizer.get_lr()[0]}, "train", global_step)
         else:
-            log_metrics(
-                {"Learning Rate": optimizer.param_groups[0]["lr"]}, "train", global_step
-            )
+            # log_metrics(
+            #     {"Learning Rate": optimizer.param_groups[0]["lr"]}, "train", global_step
+            # )
+            log_metrics_local({"Learning Rate": optimizer.param_groups[0]["lr"]}, "train", global_step)
         global_step += 1
 
     all_targets = np.concatenate(all_targets)
@@ -428,7 +475,8 @@ def train(
             all_pos_preds,
             args.use_cs_tag,
         )
-    log_metrics(metrics, "train", global_step)
+    # log_metrics(metrics, "train", global_step)
+    log_metrics_local(metrics, "train", global_step)
 
     return total_loss / len(train_data), global_step
 
@@ -544,15 +592,15 @@ def main_training_loop(args: argparse.ArgumentParser):
     experiment_name = f"{args.experiment_name}_{args.test_partition}_{args.validation_partition}_{time_stamp}"
 
     # TODO get rid of this dirty fix once wandb works again
-    global wandb
-    import wandb
-
-    if (
-        wandb.run is None and not args.crossval_run
-    ):  # Only initialize when there is no run yet (when importing main_training_loop to other scripts)
-        wandb.init(dir=args.output_dir, name=experiment_name)
-    else:
-        wandb = DecoyWandb()
+    # global wandb
+    # import wandb
+    #
+    # if (
+    #     wandb.run is None and not args.crossval_run
+    # ):  # Only initialize when there is no run yet (when importing main_training_loop to other scripts)
+    #     wandb.init(dir=args.output_dir, name=experiment_name)
+    # else:
+    #     wandb = DecoyWandb()
 
     # Set seed
     if args.random_seed is not None:
@@ -562,7 +610,7 @@ def main_training_loop(args: argparse.ArgumentParser):
         seed = torch.seed()
 
     logger.info(f"torch seed: {seed}")
-    wandb.config.update({"seed": seed})
+    # wandb.config.update({"seed": seed})
 
     logger.info(f"Saving to {args.output_dir}")
 
@@ -742,7 +790,8 @@ def main_training_loop(args: argparse.ArgumentParser):
         args.resume, config=config
     )
     tokenizer = TOKENIZER_DICT[args.model_architecture][0].from_pretrained(
-        TOKENIZER_DICT[args.model_architecture][1], do_lower_case=False
+        # TOKENIZER_DICT[args.model_architecture][1], do_lower_case=False
+        args.resume, do_lower_case=False
     )
     logger.info(
         f"Loaded weights from {args.resume} for model {model.base_model_prefix}"
@@ -858,9 +907,9 @@ def main_training_loop(args: argparse.ArgumentParser):
     logger.info(f"Data loaded. One epoch = {len(train_loader)} batches.")
 
     # set up wandb logging, login and project id from commandline vars
-    wandb.config.update(args)
-    wandb.config.update({"git commit ID": GIT_HASH})
-    wandb.config.update(model.config.to_dict())
+    # wandb.config.update(args)
+    # wandb.config.update({"git commit ID": GIT_HASH})
+    # wandb.config.update(model.config.to_dict())
     # TODO uncomment as soon as w&b fixes the bug on their end.
     # wandb.watch(model)
     logger.info(f"Logging experiment as {experiment_name} to wandb/tensorboard")
@@ -906,7 +955,7 @@ def main_training_loop(args: argparse.ArgumentParser):
     best_mcc_sum = 0
     best_mcc_global = 0
     best_mcc_cs = 0
-    for epoch in range(1, args.epochs + 1):
+    for epoch in tqdm(range(1, args.epochs + 1)):
         logger.info(f"Starting epoch {epoch}")
 
         epoch_loss, global_step = train(
@@ -917,13 +966,15 @@ def main_training_loop(args: argparse.ArgumentParser):
             f"Step {global_step}, Epoch {epoch}: validating for {len(val_loader)} Validation steps"
         )
         val_loss, val_metrics = validate(model, val_loader, args)
-        log_metrics(val_metrics, "val", global_step)
+        # log_metrics(val_metrics, "val", global_step)
+        log_metrics_local(val_metrics, "val", global_step)
         logger.info(
             f"Validation: MCC global {val_metrics['Detection MCC']}, MCC seq {val_metrics['CS MCC']}. Epochs without improvement: {num_epochs_no_improvement}. lr step {learning_rate_steps}"
         )
 
         mcc_sum = val_metrics["Detection MCC"] + val_metrics["CS MCC"]
-        log_metrics({"MCC Sum": mcc_sum}, "val", global_step)
+        # log_metrics({"MCC Sum": mcc_sum}, "val", global_step)
+        log_metrics_local({"MCC Sum": mcc_sum}, "val", global_step)
         if mcc_sum > best_mcc_sum:
             best_mcc_sum = mcc_sum
             best_mcc_global = val_metrics["Detection MCC"]
@@ -950,7 +1001,16 @@ def main_training_loop(args: argparse.ArgumentParser):
     logger.info(
         f"Best: MCC Sum {best_mcc_sum}, Detection {best_mcc_global}, CS {best_mcc_cs}"
     )
-    log_metrics(
+    # log_metrics(
+    #     {
+    #         "Best MCC Detection": best_mcc_global,
+    #         "Best MCC CS": best_mcc_cs,
+    #         "Best MCC sum": best_mcc_sum,
+    #     },
+    #     "val",
+    #     global_step,
+    # )
+    log_metrics_local(
         {
             "Best MCC Detection": best_mcc_global,
             "Best MCC CS": best_mcc_cs,
@@ -960,47 +1020,7 @@ def main_training_loop(args: argparse.ArgumentParser):
         global_step,
     )
 
-    print_all_final_metrics = True
-    if print_all_final_metrics == True:
-        # reload best checkpoint
-        model = MODEL_DICT[args.model_architecture][1].from_pretrained(args.output_dir)
-        ds = RegionCRFDataset(
-            args.data,
-            args.sample_weights,
-            tokenizer=tokenizer,
-            partition_id=[test_id],
-            kingdom_id=kingdoms,
-            add_special_tokens=True,
-            return_kingdom_ids=True,
-            positive_samples_weight=args.positive_samples_weight,
-            make_cs_state=args.use_cs_tag,
-            add_global_label=args.global_label_as_input,
-        )
-        dataloader = torch.utils.data.DataLoader(
-            ds, collate_fn=ds.collate_fn, batch_size=80
-        )
-        metrics = get_metrics_multistate(model, dataloader)
-        val_metrics = get_metrics_multistate(model, val_loader)
 
-        if args.crossval_run or args.log_all_final_metrics:
-            log_metrics(metrics, "test", global_step)
-            log_metrics(val_metrics, "best_val", global_step)
-        logger.info(metrics)
-        logger.info("Validation set")
-        logger.info(val_metrics)
-
-        ## prettyprint everythingh
-        import pandas as pd
-
-        # df = pd.DataFrame.from_dict(x, orient='index')
-        # df.index = df.index.str.split('_', expand=True)
-        # print(df.sort_index())
-
-        df = pd.DataFrame.from_dict([metrics, val_metrics]).T
-        df.columns = ["test", "val"]
-        df.index = df.index.str.split("_", expand=True)
-        pd.set_option("display.max_rows", None)
-        print(df.sort_index())
 
     run_completed = True
     return best_mcc_global, best_mcc_cs, run_completed  # best_mcc_sum

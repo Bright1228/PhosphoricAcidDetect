@@ -58,14 +58,55 @@ def print_and_save(message, output_dir):
         f.write(message + '\n')
 
 # 这个函数用来保存validate的数据到一个csv文件中
-def save_validation_results(epoch, val_metrics, output_dir):
+def save_validation_results(epoch, val_metrics, auc_roc, auc_pr, output_dir):
+    """
+    保存验证结果，包括 AUC-ROC 和 AUC-PR 指标
+
+    参数:
+    epoch (int): 当前训练的轮次
+    val_metrics (dict): 验证指标的字典
+    auc_roc (float): AUC-ROC 指标
+    auc_pr (float): AUC-PR 指标
+    output_dir (str): 保存验证结果的目录
+    """
     # 创建保存路径
     file_path = os.path.join(output_dir, 'validate_data.csv')
 
     # 检查文件是否存在
     if not os.path.exists(file_path):
         # 如果文件不存在，创建一个新的DataFrame并保存
-        df = pd.DataFrame(columns=['epoch'] + list(val_metrics.keys()))
+        df = pd.DataFrame(columns=['epoch'] + list(val_metrics.keys()) + ['AUC-ROC', 'AUC-PR'])
+        df.to_csv(file_path, index=False)
+
+    # 读取现有的CSV文件
+    df = pd.read_csv(file_path)
+
+    # 添加新的验证结果
+    new_row = pd.DataFrame([{'epoch': epoch, **val_metrics, 'AUC-ROC': auc_roc, 'AUC-PR': auc_pr}])
+    print(f"Appending new row: {new_row}")  # 调试信息
+    df = pd.concat([df, new_row], ignore_index=True)
+
+    # 保存更新后的CSV文件
+    df.to_csv(file_path, index=False)
+
+def save_validation_results_metrics(epoch, val_metrics, output_dir):
+    """
+    保存验证结果，包括 AUC-ROC 和 AUC-PR 指标
+
+    参数:
+    epoch (int): 当前训练的轮次
+    val_metrics (dict): 验证指标的字典
+    auc_roc (float): AUC-ROC 指标
+    auc_pr (float): AUC-PR 指标
+    output_dir (str): 保存验证结果的目录
+    """
+    # 创建保存路径
+    file_path = os.path.join(output_dir, 'validate_data.csv')
+
+    # 检查文件是否存在
+    if not os.path.exists(file_path):
+        # 如果文件不存在，创建一个新的DataFrame并保存
+        df = pd.DataFrame(columns=['epoch'] + list(val_metrics.keys()) + ['AUC-ROC', 'AUC-PR'])
         df.to_csv(file_path, index=False)
 
     # 读取现有的CSV文件
@@ -74,7 +115,6 @@ def save_validation_results(epoch, val_metrics, output_dir):
     # 添加新的验证结果
     new_row = pd.DataFrame([{'epoch': epoch, **val_metrics}])
     print(f"Appending new row: {new_row}")  # 调试信息
-    # df = df.append(new_row, ignore_index=True)
     df = pd.concat([df, new_row], ignore_index=True)
 
     # 保存更新后的CSV文件
@@ -109,6 +149,67 @@ def log_all_targets(all_targets, logger):
             logger.info(f"Size after concatenate: {all_targets.size}")
         except Exception as e:
             logger.error(f"Error during concatenation: {e}")
+
+def calculate_auc_metrics(pos_probs, all_targets, logger):
+    """
+    计算 AUC-ROC 和 AUC-PR 指标
+
+    参数:
+    pos_probs (numpy.ndarray): 预测概率张量，形状为 (batch_size, sequence_length, 2)
+    all_targets (numpy.ndarray): 真实标签张量，形状为 (batch_size, sequence_length)
+
+    返回:
+    tuple: AUC-ROC 和 AUC-PR 指标
+    """
+    # 提取正类的预测概率
+    positive_probs = pos_probs[:, :, 1].flatten()
+    # print(f"positive_probs：{positive_probs}")
+
+    # 提取有效的真实标签和对应的预测概率
+    all_targets_flat = all_targets.flatten()
+    # print(f"all_targets_flat:{all_targets_flat}")
+    valid_indices = all_targets_flat != -1
+    # print(f"valid_indices:{valid_indices}")
+    valid_targets = all_targets_flat[valid_indices]
+    # print(f"valid_targets:{valid_targets}")
+    valid_probs = positive_probs[valid_indices]
+    # print(f"valid_probs:{valid_probs}")
+
+    assert valid_targets.shape[0] == valid_probs.shape[0], "Shape mismatch between valid_targets and valid_probs"
+
+    if isinstance(valid_probs, torch.Tensor):
+        valid_probs = valid_probs.cpu().numpy()
+
+    # 计算 AUC-ROC
+    auc_roc = roc_auc_score(valid_targets, valid_probs)
+    logger.info(f"AUC-ROC: {auc_roc}")
+
+    # 计算 AUC-PR
+    auc_pr = average_precision_score(valid_targets, valid_probs)
+    logger.info(f"AUC-PR: {auc_pr}")
+
+    return auc_roc,auc_pr
+
+
+def compareValidate(all_pos_preds, all_targets, logger):
+    results = []
+    trueLabels = []
+    for preds in all_pos_preds:
+        for row in preds:
+            positions = np.where(row == 1)[0] + 1  # 从1开始计数
+            results.append(positions.tolist())
+    for targets in all_targets:
+        for row in targets:
+            positions = np.where(row == 1)[0] + 1  # 从1开始计数
+            trueLabels.append(positions.tolist())
+    for i, positions in enumerate(trueLabels):
+        # print(f"Row {i + 1}: Positions of 1s are {positions}")
+        logger.info(f"ture label:Row {i + 1}: Positions of 1s are {positions}")
+    for i, positions in enumerate(results):
+        # print(f"Row {i + 1}: Positions of 1s are {positions}")
+        logger.info(f"validate result:Row {i + 1}: Positions of 1s are {positions}")
+
+
 
 
 
@@ -364,16 +465,23 @@ def report_metrics_pa(
 ) -> Dict[str, float]:
     """Utility function to get metrics from model output"""
 
+    # Flatten the arrays
     true_sequence_labels = true_sequence_labels.flatten()
     pred_sequence_labels = pred_sequence_labels.flatten()
-    # print("report_matrics_pa函数正在执行！")
+
+    # Filter out the -1 values
+    valid_indices = true_sequence_labels != -1
+    true_sequence_labels = true_sequence_labels[valid_indices]
+    pred_sequence_labels = pred_sequence_labels[valid_indices]
+
+    # print("report_metrics_pa函数正在执行！")
     # print(f"true sequence label为：{true_sequence_labels}")
-    # print(f"pred_sequence_label为：{pred_sequence_labels}")
+    # print(f"pred sequence label为：{pred_sequence_labels}")
 
     # 计算评估指标
     metrics_dict = {}
-    metrics_dict["Recall"] = recall_score(true_sequence_labels, pred_sequence_labels, average="macro")
-    metrics_dict["Precision"] = precision_score(true_sequence_labels, pred_sequence_labels, average="macro")
+    metrics_dict["Recall"] = recall_score(true_sequence_labels, pred_sequence_labels, average="micro")
+    metrics_dict["Precision"] = precision_score(true_sequence_labels, pred_sequence_labels, average="micro")
     metrics_dict["MCC"] = matthews_corrcoef(true_sequence_labels, pred_sequence_labels)
     metrics_dict["Accuracy"] = accuracy_score(true_sequence_labels, pred_sequence_labels)
 
@@ -405,6 +513,7 @@ def train(
     model.train()
     # 清零优化器的梯度
     optimizer.zero_grad()
+    criterion = nn.CrossEntropyLoss()
 
     # 初始化存储变量
     all_targets = []  # 存储每个批次的序列标签（sequence labels）
@@ -461,17 +570,18 @@ def train(
 
 
         # 向前传播的过程，这里需要删去global_probs,因为不得出这一结果
-        out2 = model(
-            data,
-            global_targets=None,
-            targets=targets if not args.sp_region_labels else None,
-            targets_bitmap=targets if args.sp_region_labels else None,
-            input_mask=input_mask,
-            sample_weights=sample_weights,
-            kingdom_ids=kingdom_ids if args.kingdom_embed_size > 0 else None,
-        )
+        # print(f"检查{args.sp_region_labels}")
+        # out2 = model(
+        #     data,
+        #     global_targets=None,
+        #     targets=targets if not args.sp_region_labels else None,
+        #     targets_bitmap=targets if args.sp_region_labels else None,
+        #     input_mask=input_mask,
+        #     sample_weights=sample_weights,
+        #     kingdom_ids=kingdom_ids if args.kingdom_embed_size > 0 else None,
+        # )
         # print(f"赋值给loss, pos_probs, pos_preds返回内容是{out2}")
-        loss, pos_probs, pos_preds = model(
+        neg_log_likelihood, pos_probs, pos_preds, logits = model(
             data,
             global_targets=None,
             targets=targets if not args.sp_region_labels else None,
@@ -480,11 +590,44 @@ def train(
             sample_weights=sample_weights,
             kingdom_ids=kingdom_ids if args.kingdom_embed_size > 0 else None,
         )
-        loss = (
-            loss.mean()
-        )  # if DataParallel because loss is a vector, if not doesn't matter
-        # 同样的，删去global
+        # 使用掩码忽略填充值
+        mask = (targets != -1)
+        masked_targets = targets[mask].long()
+        masked_logits = logits[mask]
+
+        # 计算CrossEntropyLoss
+        cross_entropy_loss = criterion(masked_logits, masked_targets)
+        if sample_weights is not None:
+            print(sample_weights)
+            # 计算每个样本的平均损失
+            sample_loss = cross_entropy_loss.view(-1)
+            # 使用样本权重调整损失
+            weighted_loss = sample_loss * sample_weights
+            cross_entropy_loss = weighted_loss.mean()
+        else:
+            cross_entropy_loss = cross_entropy_loss.mean()  # 如果使用DataParallel，因为loss是一个向量
+
+        # 对neg_log_likelihood进行相同的处理
+        if sample_weights is not None:
+            print(f"我正在计算loss!sample_weights的值为{sample_weights}")
+            neg_log_likelihood = neg_log_likelihood * sample_weights
+        neg_log_likelihood = neg_log_likelihood.mean()
+
+        # # 计算负似然对数
+        # loss = loss * sample_weights  # 使用样本权重调整损失
+        # loss = (
+        #     loss.mean()
+        # )  # if DataParallel because loss is a vector, if not doesn't matter
+        # 定义权重
+        alpha = 0.0  # 权重可以根据需要调整
+        beta = 1.0 - alpha
+
+        # 组合损失
+        loss = alpha * neg_log_likelihood + beta * cross_entropy_loss
+
         total_loss += loss.item()
+
+        # 同样的，删去global
         all_targets.append(targets.detach().cpu().numpy())
         # all_global_targets.append(global_targets.detach().cpu().numpy())
         # all_global_probs.append(global_probs.detach().cpu().numpy())
@@ -542,44 +685,6 @@ def train(
 
         global_step += 1
 
-    # 删除部分
-    # all_targets = np.concatenate(all_targets)
-    # all_global_targets = np.concatenate(all_global_targets)
-    # all_global_probs = np.concatenate(all_global_probs)
-    # all_pos_preds = np.concatenate(all_pos_preds)
-    # all_kingdom_ids = np.concatenate(all_kingdom_ids)
-    # all_token_ids = np.concatenate(all_token_ids)
-    # all_cs = np.concatenate(all_cs) if args.sp_region_labels else None
-
-    # if args.average_per_kingdom:
-    #     metrics = report_metrics_kingdom_averaged(
-    #         all_global_targets,
-    #         all_global_probs,
-    #         all_targets,
-    #         all_pos_preds,
-    #         all_kingdom_ids,
-    #         all_token_ids,
-    #         all_cs,
-    #         args.use_cs_tag,
-    #     )
-    # else:
-    #     metrics = report_metrics(
-    #         all_global_targets,
-    #         all_global_probs,
-    #         all_targets,
-    #         all_pos_preds,
-    #         args.use_cs_tag,
-    #     )
-
-    # 尝试，只保留了序列处理的部分
-    # 暂不使用，需要修改np数组的格式，后面尝试加上
-    # metrics = report_metrics_pa(
-    #     all_targets,
-    #     all_pos_preds,
-    # )
-
-    # log_metrics(metrics, "train", global_step)
-
     return total_loss / len(train_data), global_step
 
  # 填充 all_targets 中的每个数组到指定长度
@@ -594,9 +699,12 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> fl
     # 用于在验证数据集上运行模型，并计算整个数据集的平均损失
     # 将模型设置为评估模式，关闭dropout等
     model.eval()
+    criterion = nn.CrossEntropyLoss()
+
 
     all_targets = []
     all_probs = []
+    all_pos_probs=[]
     all_pos_preds = []
     all_token_ids = []
 
@@ -610,44 +718,72 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> fl
         sample_weights = sample_weights.to(device) if args.use_sample_weights else None
 
         with torch.no_grad():
-            # loss, probs, pos_probs, pos_preds = model(
-            #     data,
-            #     targets=targets,
-            #     sample_weights=sample_weights,
-            #     input_mask=input_mask,
-            # )
-            loss, pos_probs, pos_preds = model(
+            neg_log_likelihood, pos_probs, pos_preds, logits = model(
                 data,
                 targets=targets,
                 sample_weights=sample_weights,
                 input_mask=input_mask,
             )
+            print(f"输出测试pos_preds：{pos_preds}")
+
+            # 使用掩码忽略填充值
+            mask = (targets != -1)
+            masked_targets = targets[mask].long()
+            masked_logits = logits[mask]
+
+            # 计算CrossEntropyLoss
+            cross_entropy_loss = criterion(masked_logits, masked_targets)
+            print(f"masked_targets:{masked_targets}")
+            print(f"masked_logits:{masked_logits}")
+            if sample_weights is not None:
+                # 计算每个样本的平均损失
+                sample_loss = cross_entropy_loss.view(-1)
+                # 使用样本权重调整损失
+                weighted_loss = sample_loss * sample_weights
+                cross_entropy_loss = weighted_loss.mean()
+            else:
+                cross_entropy_loss = cross_entropy_loss.mean()  # 如果使用DataParallel，因为loss是一个向量
+
+            if sample_weights is not None:
+                neg_log_likelihood = neg_log_likelihood * sample_weights
+            neg_log_likelihood = neg_log_likelihood.mean()
+
+            # 定义权重
+            alpha = 0.0  # 权重可以根据需要调整
+            beta = 1.0 - alpha
+
+            # 组合损失
+            loss = alpha * neg_log_likelihood + beta * cross_entropy_loss
 
         total_loss += loss.mean().item()
         all_targets.append(targets.detach().cpu().numpy())
+        all_pos_probs.append(pos_probs.detach().cpu().numpy())
         # all_probs.append(probs.detach().cpu().numpy())
         all_pos_preds.append(pos_preds.detach().cpu().numpy())
         all_token_ids.append(data.detach().cpu().numpy())
+        # logger.info(f"all_targets:{all_targets}")
+        # logger.info(f"all_pos_preds:{all_pos_preds}")
+        # logger.info(f"pos_probs:{pos_probs}")
+        compareValidate(all_pos_preds=all_pos_preds, all_targets=all_targets ,logger=logger)
 
-    fixed_length = 50
+    fixed_length = 100
     all_targets = [pad_array(arr, fixed_length) for arr in all_targets]
 
-    # print("validate检测结果：")
-        # print(f"Batch {i}:")
-        # print(f"pos_probs: {pos_probs}")
-        # print(f"pos_preds: {pos_preds}")
+
 
     # all_targets = np.concatenate(all_targets)
     # all_probs = np.concatenate(all_probs)
     # all_pos_preds = np.concatenate(all_pos_preds)
     # all_token_ids = np.concatenate(all_token_ids)
     if all_targets:
-        log_all_targets(all_targets, logger=logger)
+        # log_all_targets(all_targets, logger=logger)
         all_targets = np.concatenate(all_targets, axis=0)
     if all_probs:
         all_probs = np.concatenate(all_probs)
     if all_pos_preds:
         all_pos_preds = np.concatenate(all_pos_preds,axis=0)
+    if all_pos_probs:
+        all_pos_probs = np.concatenate(all_pos_probs,axis=0)
     # if all_token_ids:
     #     all_token_ids = np.concatenate(all_token_ids)
 
@@ -662,18 +798,20 @@ def validate(model: torch.nn.Module, valid_data: DataLoader, args, logger) -> fl
     # print(f"all pos preds的值为：{all_pos_preds}")
     # print(f"all pos probs的值为：{all_probs}")
     metrics = report_metrics_pa(all_targets, all_pos_preds)
-
+    # auc_roc, auc_pr = calculate_auc_metrics(all_pos_probs, all_targets, logger)
     val_metrics = {"loss": total_loss / len(valid_data), **metrics}
     # 这个返回值实际上是通过计算一些平均损失，然后保留了一些信息
     val_loss = total_loss / len(valid_data)
     # val_metrics = {"loss": val_loss}
     return val_loss, val_metrics
+    # return val_loss, val_metrics, auc_roc, auc_pr
+
 
 def evaluate(model: torch.nn.Module, test_data: DataLoader, args) -> float:
     """Evaluate the model on the test data. Calculate average accuracy over the full set."""
     # 将模型设置为评估模式，关闭dropout等
     model.eval()
-
+    criterion = nn.CrossEntropyLoss()
     all_targets = []
     all_pos_preds = []
     all_pos_probs = []
@@ -690,19 +828,46 @@ def evaluate(model: torch.nn.Module, test_data: DataLoader, args) -> float:
         sample_weights = sample_weights.to(device) if args.use_sample_weights else None
 
         with torch.no_grad():
-            loss, pos_probs, pos_preds = model(
-                data,
-                targets=targets,
-                sample_weights=sample_weights,
-                input_mask=input_mask,
-            )
+            with torch.no_grad():
+                neg_log_likelihood, pos_probs, pos_preds, logits = model(
+                    data,
+                    targets=targets,
+                    sample_weights=sample_weights,
+                    input_mask=input_mask,
+                )
 
+                # 使用掩码忽略填充值
+                mask = (targets != -1)
+                masked_targets = targets[mask].long()
+                masked_logits = logits[mask]
+
+                # 计算CrossEntropyLoss
+                cross_entropy_loss = criterion(masked_logits, masked_targets)
+                if sample_weights is not None:
+                    # 计算每个样本的平均损失
+                    sample_loss = cross_entropy_loss.view(-1)
+                    # 使用样本权重调整损失
+                    weighted_loss = sample_loss * sample_weights
+                    cross_entropy_loss = weighted_loss.mean()
+                else:
+                    cross_entropy_loss = cross_entropy_loss.mean()  # 如果使用DataParallel，因为loss是一个向量
+
+                if sample_weights is not None:
+                    neg_log_likelihood = neg_log_likelihood * sample_weights
+                neg_log_likelihood = neg_log_likelihood.mean()
+
+                # 定义权重
+                alpha = 1.0  # 权重可以根据需要调整
+                beta = 1.0 - alpha
+
+                # 组合损失
+                loss = alpha * neg_log_likelihood + beta * cross_entropy_loss
         total_loss += loss.mean().item()
         all_targets.append(targets.detach().cpu().numpy())
         all_pos_preds.append(pos_preds.detach().cpu().numpy())
         all_pos_probs.append(pos_probs.detach().cpu().numpy())
 
-    fixed_length = 50
+    fixed_length = 100
     all_targets = [pad_array(arr, fixed_length) for arr in all_targets]
 
     all_targets = np.concatenate(all_targets, axis=0)
@@ -1138,7 +1303,7 @@ def main_training_loop(args: argparse.ArgumentParser):
             lr=args.lr,
             warmup=0.1,
             t_total=t_total,
-            schedule="warmup_linear",
+            schedule=args.schedule,
             betas=(0.9, 0.999),
             weight_decay=args.wdecay,
             max_grad_norm=1,
@@ -1156,10 +1321,12 @@ def main_training_loop(args: argparse.ArgumentParser):
     learning_rate_steps = 0
     num_epochs_no_improvement = 0
     global_step = 0
-    best_mcc_sum = 0
+    best_mcc = 0
     best_mcc_global = 0
     best_mcc_cs = 0
     best_precision = 0
+    best_val_loss = float('inf')
+    early_stopping_patience = 5  # 可以根据需要调整
 
     best_model_path = None  # 用于存储最佳模型的路径
 
@@ -1173,8 +1340,47 @@ def main_training_loop(args: argparse.ArgumentParser):
         epoch_loss, global_step = train(
             model, train_loader, optimizer, args, global_step, logger
         )
+        # val验证集进行测试
         val_loss, val_metrics = validate(model, val_loader, args=args, logger=logger)
-        save_validation_results(epoch, val_metrics, args.output_dir)
+        logger.info(
+            f"Step {global_step}, Epoch {epoch}: validating for {len(val_loader)} Validation steps"
+        )
+        save_validation_results_metrics(epoch, val_metrics, args.output_dir)
+        if args.use_wandb:
+            log_metrics(val_metrics, "val", global_step)
+        log_metrics_ueslog(val_metrics,"val", global_step, logger)
+
+        # 获取评估指标
+        recall = val_metrics.get("Recall", 0)
+        precision = val_metrics.get("Precision", 0)
+        mcc = val_metrics.get("MCC", 0)
+
+        logger.info(
+            f"Validation: Recall {recall}, Precision {precision}, MCC {mcc}. Epochs without improvement: {num_epochs_no_improvement}. lr step {learning_rate_steps}"
+        )
+
+        if val_loss < best_val_loss or mcc > best_mcc:
+            best_val_loss = val_loss
+            best_mcc = mcc
+            num_epochs_no_improvement = 0
+
+            model.save_pretrained(args.output_dir)
+            best_model_saved = True
+            logger.info(
+                f'New best model with loss {val_loss}, MCC {mcc}, Saving model, training step {global_step}'
+            )
+        else:
+            num_epochs_no_improvement += 1
+
+        # 检查是否需要早停
+        if num_epochs_no_improvement > early_stopping_patience:
+            logger.info(
+                f"Stopping training as there have been {num_epochs_no_improvement} epochs without improvement.")
+            break
+
+        # 确保至少保存了一个模型
+        if not best_model_saved:
+            logger.warning("Training stopped without saving any model. Please check the training process.")
 
     #     logger.info(
     #         f"Step {global_step}, Epoch {epoch}: validating for {len(val_loader)} Validation steps"
@@ -1267,110 +1473,44 @@ def main_training_loop(args: argparse.ArgumentParser):
     #
     # run_completed = True
     # return best_mcc_global, best_mcc_cs, run_completed  # best_mcc_sum
-    logger.info(
-        f"Step {global_step}, Epoch {epoch}: validating for {len(val_loader)} Validation steps"
-    )
-    val_loss, val_metrics = validate(model, val_loader, args=args, logger=logger)
-    if args.use_wandb:
-        log_metrics(val_metrics, "val", global_step)
-    log_metrics_ueslog(val_metrics,"val", global_step, logger)
-    # save_validation_results(epoch, val_metrics, args.output_dir)
 
+    # test数据集上的验证
     avg_loss, precision, recall, f1, accuracy = evaluate(model, test_loader, args)
-    print(f"Test Loss: {avg_loss:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-    print(f"F1 Score: {f1:.4f}")
-    print(f"Accuracy: {accuracy:.4f}")
     if args.write_validate_to_log:
         print_and_save(f"Test Loss: {avg_loss:.4f}", args.output_dir)
         print_and_save(f"Precision: {precision:.4f}", args.output_dir)
         print_and_save(f"Recall: {recall:.4f}", args.output_dir)
         print_and_save(f"F1 Score: {f1:.4f}", args.output_dir)
         print_and_save(f"Accuracy: {accuracy:.4f}", args.output_dir)
-
     logger.info(f"Test Loss: {avg_loss:.4f}")
     logger.info(f"Precision: {precision:.4f}")
     logger.info(f"Recall: {recall:.4f}")
     logger.info(f"F1 Score: {f1:.4f}")
     logger.info(f"Accuracy: {accuracy:.4f}")
 
-    # 获取评估指标
-    recall = val_metrics.get("Recall", 0)
-    precision = val_metrics.get("Precision", 0)
-    mcc = val_metrics.get("MCC", 0)
-
-    logger.info(
-        f"Validation: Recall {recall}, Precision {precision}, MCC {mcc}. Epochs without improvement: {num_epochs_no_improvement}. lr step {learning_rate_steps}"
-    )
-
-    # 计算 MCC 总和
-    mcc_sum = mcc  # 这里假设只有一个 MCC 指标
-    if args.use_wandb:
-        log_metrics({"MCC Sum": mcc_sum}, "val", global_step)
-    log_metrics_ueslog({"MCC Sum": mcc_sum}, "val", global_step, logger=logger)
-
-    if mcc_sum > best_mcc_sum or precision > best_precision:
-        best_mcc_sum = max(mcc_sum, best_mcc_sum)
-        best_precision = max(precision, best_precision)
-        best_mcc_global = mcc  # 假设只有一个 MCC 指标
-        num_epochs_no_improvement = 0
-
-        best_model_path = f"{args.output_dir}/best_model_epoch_{epoch}.pth"
-        best_model_state_dict = model.state_dict()
-        logger.info(
-            f'New best model with loss {val_loss}, MCC Sum {mcc_sum}, MCC {mcc}, Updating best model path to {best_model_path}, training step {global_step}')
-        logger.info(
-            f'New best model with loss {val_loss}, MCC Sum {mcc_sum}, MCC {mcc}, Saving model, training step {global_step}'
-        )
-    else:
-        num_epochs_no_improvement += 1
-
-    # 当进行交叉验证时，检查种子是否适用于区域检测
-    if args.crossval_run and epoch == 1:
-        # 第一个 epoch 中的小长度 = 坏种子。
-        if val_metrics.get("Average length n 1", 0) <= 4:
-            print("Bad seed for region tagging.")
-            run_completed = False
-            return best_mcc_global, run_completed
-
-    # 确保至少保存一个模型
-    if best_model_path is None:
-        best_model_path = f"{args.output_dir}/final_model.pth"
-        best_model_state_dict = model.state_dict()
-        logger.info(f'Saving final model to {best_model_path}')
-
-        # if args.save_model:
-        #     # 保存最佳模型
-    # torch.save(best_model_state_dict, best_model_path)
-    # model.save_pretrained(args.output_dir)
-    # logger.info(f'Saving best model to {best_model_path} and {args.output_dir}')
-    # print(f'Saving best model to {best_model_path} and {args.output_dir}')
-
-
 
     logger.info(f"Epoch {epoch}, epoch limit reached. Training complete")
-    logger.info(
-        f"Best: MCC Sum {best_mcc_sum}, Detection {best_mcc_global}"
-    )
-    if args.use_wandb:
-        log_metrics(
-            {
-                "Best MCC Detection": best_mcc_global,
-                "Best MCC sum": best_mcc_sum,
-            },
-            "val",
-            global_step,
-        )
-    log_metrics_ueslog(
-        {
-            "Best MCC Detection": best_mcc_global,
-            "Best MCC sum": best_mcc_sum,
-        },
-        "val",
-        global_step,
-        logger
-    )
+    # logger.info(
+    #     f"Best: MCC Sum {best_mcc_sum}, Detection {best_mcc_global}"
+    # )
+    # if args.use_wandb:
+    #     log_metrics(
+    #         {
+    #             "Best MCC Detection": best_mcc_global,
+    #             "Best MCC sum": best_mcc_sum,
+    #         },
+    #         "val",
+    #         global_step,
+    #     )
+    # log_metrics_ueslog(
+    #     {
+    #         "Best MCC Detection": best_mcc_global,
+    #         "Best MCC sum": best_mcc_sum,
+    #     },
+    #     "val",
+    #     global_step,
+    #     logger
+    # )
 
     run_completed = True
     return best_mcc_global, run_completed
@@ -1572,6 +1712,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help='Use wandb to log information, in case of bad net condition'
+    )
+    parser.add_argument(
+        "--schedule",
+        type=str,
+        default="slanted_triangular",
+        help="optimizer schedule to use (schedule, cosine_annealing, warmup_linear)",
     )
 
 

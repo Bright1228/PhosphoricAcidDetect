@@ -4,6 +4,6 @@ signalp6.egg-info/
 *.pyo
 checkpoints/ensemble_model_signalp6.pt
 training_run/
-pretrianed
+pretrained
 protT5
 test.ipynb

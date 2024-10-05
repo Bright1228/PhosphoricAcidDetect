@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 
+
 from colorama import Fore, Style, init
 init(autoreset=True)
 # FROM https://github.com/JeppeHallgren/pytorch-crf/blob/master/torchcrf/__init__.py
@@ -322,6 +323,7 @@ class CRF(nn.Module):
         tags: Optional[torch.LongTensor] = None,
         mask: Optional[torch.ByteTensor] = None,
     ) -> None:
+
         if emissions.dim() != 3:
             raise ValueError(
                 f"emissions must have dimension of 3, got {emissions.dim()}"
@@ -674,6 +676,9 @@ class CRF(nn.Module):
             prob = prob.transpose(0, 1)
 
         marginals = torch.exp(prob)
+
+        # if weights is not None:
+        #     marginals = marginals * weights
 
         # res = torch.nn.functional.softmax(marginals, dim=-1)
         test = marginals.sum(-1)

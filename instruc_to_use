@@ -1,0 +1,5 @@
+python train_P_model.py --data data/test.fasta --num_seq_labels 2 --epochs 50 --write_validate_to_log --resume pretrained --use_sample_weights --lr 0.05
+
+python train_P_model.py --data data/test100_select_100.fasta --num_seq_labels 2 --epochs 300 --write_validate_to_log --resume pretrained --use_sample_weights --optimizer smart_adamdax --batch_size 4
+
+python scripts/train_model.py --data data/train_set_select_100.fasta --test_partition 0 --validation_partition 1 --output_dir testruns --experiment_name signalP100dataset --remove_top_layers 1 --kingdom_as_token --sp_region_labels --region_regularization_alpha 0.5 --constrain_crf --average_per_kingdom --batch_size 4 --epochs 300 --optimizer smart_adamax --resume pretrained
